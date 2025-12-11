@@ -8,7 +8,7 @@ import {
 } from './constants';
 import { 
   QuotationData, CalculatedTotals, ClientMaster, SkillMaster, EventTemplate, 
-  QuotationRecord, HistoryLog, TeamMember, PaymentMilestone, EventItem
+  QuotationRecord, HistoryLog, TeamMember, PaymentMilestone, EventItem, AddOn
 } from './types';
 import PreviewSection from './components/PreviewSection';
 
@@ -68,12 +68,18 @@ const App: React.FC = () => {
     // 1. Calculate Total Event Cost (This DRIVES the Base Amount)
     const totalEventCost = q.events.reduce((sum, e) => sum + (Number(e.approxCost) || 0), 0);
 
-    // 2. Base Amount is strictly the event cost (UI enforces this via read-only sync)
-    // However, we rely on the data.financials.baseAmount being synced by the useEffect below.
-    // For calculation safety, we use the stored baseAmount.
+    // 2. Add-ons Total
+    const totalAddOns = q.addOns.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+
+    // 3. Base Amount Logic
+    // Base amount is typically sum of events. Add-ons are usually separate line items but included in Grand Total.
     const packageAfterDiscount = q.financials.baseAmount - q.financials.discount;
-    const gstAmount = (packageAfterDiscount * q.financials.gstRate) / 100;
-    const grandTotal = packageAfterDiscount + gstAmount;
+    
+    // Taxable Amount (Package + Add-ons)
+    const taxableAmount = packageAfterDiscount + totalAddOns;
+    
+    const gstAmount = (taxableAmount * q.financials.gstRate) / 100;
+    const grandTotal = taxableAmount + gstAmount;
     
     const totalPaid = q.financials.paymentMilestones
         .filter(m => m.isPaid)
@@ -116,7 +122,8 @@ const App: React.FC = () => {
       updatedAt: new Date().toISOString(),
       data: {
         ...INITIAL_QUOTATION,
-        client: { ...INITIAL_QUOTATION.client, quoNumber: `QUO-${new Date().getFullYear()}-${Math.floor(Math.random()*10000)}` }
+        client: { ...INITIAL_QUOTATION.client, quoNumber: `QUO-${new Date().getFullYear()}-${Math.floor(Math.random()*10000)}` },
+        addOns: [] // Start empty for new
       },
       history: [{
         id: `hist-${Date.now()}`,
@@ -166,43 +173,10 @@ const App: React.FC = () => {
         const old = q.data;
         const current = data;
 
-        // Client Diffs
+        // Simple Diff checks
         if (old.client.name !== current.client.name) changes.push(`Client Name: "${old.client.name}" → "${current.client.name}"`);
-        if (old.client.phone !== current.client.phone) changes.push(`Client Phone: "${old.client.phone}" → "${current.client.phone}"`);
-        if (old.client.status !== current.client.status) changes.push(`Status: "${old.client.status}" → "${current.client.status}"`);
-
-        // Event Diffs
-        if (old.events.length !== current.events.length) {
-            changes.push(`Event count changed: ${old.events.length} → ${current.events.length}`);
-        } else {
-            current.events.forEach((ev, idx) => {
-                const oldEv = old.events[idx];
-                if (oldEv.approxCost !== ev.approxCost) changes.push(`Event '${ev.name}' Cost: ${oldEv.approxCost} → ${ev.approxCost}`);
-                // Team Diff
-                if (JSON.stringify(oldEv.team) !== JSON.stringify(ev.team)) {
-                    // detailed team diff
-                    ev.team.forEach(tm => {
-                        const oldTm = oldEv.team.find(t => t.skillId === tm.skillId);
-                        const skillName = skills.find(s => s.id === tm.skillId)?.name || 'Unknown';
-                        if (!oldTm) changes.push(`Event '${ev.name}': Added ${tm.count} ${skillName}`);
-                        else if (oldTm.count !== tm.count) changes.push(`Event '${ev.name}': ${skillName} count ${oldTm.count} → ${tm.count}`);
-                    });
-                }
-            });
-        }
-
-        // Financials Diffs
         if (old.financials.baseAmount !== current.financials.baseAmount) changes.push(`Base Amount: ${old.financials.baseAmount} → ${current.financials.baseAmount}`);
-        
-        // Milestone Diffs
-        current.financials.paymentMilestones.forEach(nm => {
-            const om = old.financials.paymentMilestones.find(m => m.id === nm.id);
-            if (om) {
-                if (om.value !== nm.value) changes.push(`Milestone '${nm.name}' Value: ${om.value} → ${nm.value}`);
-                if (om.amount !== nm.amount) changes.push(`Milestone '${nm.name}' Amount: ${om.amount} → ${nm.amount}`);
-                if (om.isPaid !== nm.isPaid) changes.push(`Milestone '${nm.name}' Paid: ${om.isPaid ? 'Yes' : 'No'} → ${nm.isPaid ? 'Yes' : 'No'}`);
-            }
-        });
+        if (old.addOns.length !== current.addOns.length) changes.push(`Add-ons updated`);
 
         let newHistory = q.history;
         if (changes.length > 0) {
@@ -267,10 +241,8 @@ const App: React.FC = () => {
 
     if (skillId) {
         if (isTemplate) {
-            // Add to active template (handled by caller usually, but here strictly for state update if context is generic)
-            // For templates, we usually pass a callback.
+            // Template logic is specific to component
         } else {
-            // Add to Event in Quotation
             setData(prev => ({
                 ...prev,
                 events: prev.events.map(ev => {
@@ -286,11 +258,10 @@ const App: React.FC = () => {
     }
     setActiveSkillInputId(null);
     setTempSkillInput('');
-    return skillId; // Return ID for other contexts
+    return skillId;
   };
 
   const handleCreateAndAddSkillToTemplate = (name: string) => {
-    // Reuse general handler logic for creating the skill
     return handleCreateAndAddSkill(name, 'template-editor', true);
   };
 
@@ -359,13 +330,16 @@ const App: React.FC = () => {
             <tbody className="divide-y divide-gray-100 text-sm">
                 {quotations.map(q => {
                     const statusColors: any = { Draft: 'bg-gray-100 text-gray-600', Sent: 'bg-blue-100 text-blue-600', Accepted: 'bg-green-100 text-green-600', Rejected: 'bg-red-100 text-red-600' };
+                    // Calculate quick total for dashboard view
+                    const qTotal = calculateTotals(q.data).grandTotal;
+                    
                     return (
                         <tr key={q.id} className="hover:bg-gray-50 transition-colors">
                             <td className="p-4 font-mono text-gray-500">{q.data.client.quoNumber}</td>
                             <td className="p-4 font-medium text-gray-800">{q.data.client.name}</td>
                             <td className="p-4 text-gray-500">{new Date(q.createdAt).toLocaleDateString()}</td>
                             <td className="p-4 font-medium text-gray-800">
-                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(q.data.financials.baseAmount)}
+                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(qTotal)}
                             </td>
                             <td className="p-4">
                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${statusColors[q.data.client.status] || 'bg-gray-100'}`}>
@@ -895,6 +869,37 @@ const App: React.FC = () => {
       case 3: // FINANCIALS
         return (
           <div className="space-y-6 animate-fadeIn">
+            {/* ADD ONS SECTION */}
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-bold uppercase text-purple-800">Additional Services (Add-ons)</h3>
+                    <button onClick={() => {
+                        const newAddOn: AddOn = { id: `add-${Date.now()}`, service: '', description: '', price: 0 };
+                        setData(prev => ({ ...prev, addOns: [...prev.addOns, newAddOn] }));
+                    }} className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-3 py-1 rounded-full font-bold">+ Add Service</button>
+                </div>
+                {data.addOns.length === 0 && <p className="text-xs text-purple-400 italic text-center py-2">No add-ons included.</p>}
+                
+                <div className="space-y-2">
+                    {data.addOns.map((addon, idx) => (
+                        <div key={addon.id} className="flex gap-2 items-start">
+                            <input className="flex-1 p-2 text-sm border rounded" placeholder="Service Name (e.g. LED Wall)" value={addon.service} onChange={e => {
+                                const arr = [...data.addOns]; arr[idx].service = e.target.value; setData({...data, addOns: arr});
+                            }} />
+                            <input className="flex-[2] p-2 text-sm border rounded" placeholder="Description" value={addon.description} onChange={e => {
+                                const arr = [...data.addOns]; arr[idx].description = e.target.value; setData({...data, addOns: arr});
+                            }} />
+                            <input type="number" className="w-24 p-2 text-sm border rounded font-mono" placeholder="Price" value={addon.price} onChange={e => {
+                                const arr = [...data.addOns]; arr[idx].price = parseFloat(e.target.value) || 0; setData({...data, addOns: arr});
+                            }} />
+                            <button onClick={() => {
+                                setData(prev => ({...prev, addOns: prev.addOns.filter((_, i) => i !== idx)}));
+                            }} className="p-2 text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                 <h3 className="text-sm font-bold uppercase text-yellow-800 mb-4">Package Summary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -911,6 +916,12 @@ const App: React.FC = () => {
                         <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Discount</label>
                         <input type="number" className="w-full p-2 border rounded font-mono" value={data.financials.discount} onChange={e => setData({...data, financials: {...data.financials, discount: parseFloat(e.target.value)||0}})} onBlur={() => saveQuotation()}/>
                     </div>
+                </div>
+                
+                {/* Total Preview */}
+                <div className="mt-4 pt-3 border-t border-yellow-200 text-sm flex flex-col gap-1 text-right">
+                    <div className="text-gray-500">Add-ons Total: + {data.addOns.reduce((s,a) => s + (a.price||0), 0)}</div>
+                    <div className="font-bold text-gray-800">Grand Total (Estimated): {totals.grandTotal.toFixed(0)}</div>
                 </div>
             </div>
 

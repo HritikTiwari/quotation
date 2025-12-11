@@ -14,6 +14,8 @@ body {
   }
   #printable-quotation, #printable-quotation * {
     visibility: visible;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   #printable-quotation {
     position: absolute;
