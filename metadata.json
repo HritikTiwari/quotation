@@ -1,0 +1,5 @@
+{
+  "name": "Quotation Manager",
+  "description": "A professional quotation generator for Mera Studio & Films, featuring a multi-step wizard, real-time preview, financial calculations, and AI-assisted content refinement.",
+  "requestFramePermissions": []
+}

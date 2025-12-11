@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3f4f6;
+}
+
+@media print {
+  @page { margin: 0; size: auto; }
+  body * {
+    visibility: hidden;
+  }
+  #printable-quotation, #printable-quotation * {
+    visibility: visible;
+  }
+  #printable-quotation {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none !important;
+  }
+  /* Ensure no background colors interfere with text */
+  html, body {
+    background: white !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
