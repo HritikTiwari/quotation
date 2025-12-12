@@ -70,12 +70,8 @@ const App: React.FC = () => {
     // Taxable Amount (Package + Add-ons) - Now represents Grand Total as GST is removed
     const grandTotal = packageAfterDiscount + totalAddOns;
     
-    // GST removed
-    
-    const totalPaid = q.financials.paymentMilestones
-        .filter(m => m.isPaid)
-        .reduce((sum, m) => sum + m.amount, 0);
-
+    // Payment Tracking (Advance)
+    const totalPaid = q.financials.advanceAmount || 0;
     const balanceDue = grandTotal - totalPaid;
 
     return {
@@ -169,6 +165,7 @@ const App: React.FC = () => {
         if (old.client.name !== current.client.name) changes.push(`Client Name: "${old.client.name}" → "${current.client.name}"`);
         if (old.financials.baseAmount !== current.financials.baseAmount) changes.push(`Base Amount: ${old.financials.baseAmount} → ${current.financials.baseAmount}`);
         if (old.addOns.length !== current.addOns.length) changes.push(`Add-ons updated`);
+        if (old.financials.advanceAmount !== current.financials.advanceAmount) changes.push(`Advance: ${old.financials.advanceAmount} → ${current.financials.advanceAmount}`);
 
         let newHistory = q.history;
         if (changes.length > 0) {
@@ -202,6 +199,21 @@ const App: React.FC = () => {
   };
 
   const handleSelectClient = (id: string) => {
+    if (id === 'NEW_CLIENT') {
+         setData(prev => ({
+            ...prev,
+            client: {
+                ...prev.client,
+                name: '',
+                company: '',
+                phone: '',
+                email: '',
+                address: '',
+                locations: ''
+            }
+         }));
+         return;
+    }
     const client = clients.find(c => c.id === id);
     if (client) {
         setData(prev => ({
@@ -211,7 +223,8 @@ const App: React.FC = () => {
                 name: client.name,
                 company: client.company || '',
                 phone: client.phone,
-                email: client.email
+                email: client.email,
+                address: client.address || ''
             }
         }));
     }
@@ -835,16 +848,48 @@ const App: React.FC = () => {
             {/* Load Client */}
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col md:flex-row gap-4 items-center">
                 <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold uppercase text-blue-800 mb-1">Load Existing Client</label>
+                    <label className="block text-xs font-bold uppercase text-blue-800 mb-1">Select Client</label>
                     <select onChange={(e) => handleSelectClient(e.target.value)} className="w-full p-2 rounded border border-blue-200 text-sm">
                         <option value="">-- Select --</option>
                         {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        <option value="NEW_CLIENT" className="font-bold text-blue-600">+ Add New Client (Clear)</option>
                     </select>
                 </div>
                 <div className="text-blue-400 hidden md:block"><ChevronRight /></div>
                 <div className="flex-1 text-xs text-blue-700">Select to auto-fill details from your database.</div>
             </div>
 
+            {/* Client Details Section (Top) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Client Name</label>
+                  <input type="text" name="name" value={data.client.name} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm font-bold" />
+               </div>
+               <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Company (Optional)</label>
+                  <input type="text" name="company" value={data.client.company || ''} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
+               </div>
+               <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Phone</label>
+                  <input type="text" name="phone" value={data.client.phone} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
+               </div>
+               <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email</label>
+                  <input type="email" name="email" value={data.client.email} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
+               </div>
+               <div className="md:col-span-2">
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Client Address</label>
+                  <input type="text" name="address" value={data.client.address || ''} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" placeholder="Street, City, State..." />
+               </div>
+               <div className="md:col-span-2">
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Event Locations</label>
+                  <input type="text" name="locations" value={data.client.locations} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
+               </div>
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* Quotation Metadata Section (Bottom) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Quotation No</label>
@@ -872,31 +917,6 @@ const App: React.FC = () => {
                <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Valid Till</label>
                   <input type="date" name="validTill" value={data.client.validTill} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
-               </div>
-            </div>
-
-            <hr className="border-gray-100" />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Client Name</label>
-                  <input type="text" name="name" value={data.client.name} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm font-bold" />
-               </div>
-               <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Company (Optional)</label>
-                  <input type="text" name="company" value={data.client.company || ''} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
-               </div>
-               <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Phone</label>
-                  <input type="text" name="phone" value={data.client.phone} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
-               </div>
-               <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email</label>
-                  <input type="email" name="email" value={data.client.email} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
-               </div>
-               <div className="md:col-span-2">
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Event Locations</label>
-                  <input type="text" name="locations" value={data.client.locations} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
                </div>
             </div>
           </div>
@@ -970,7 +990,7 @@ const App: React.FC = () => {
                                 <label htmlFor={`date-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Date & Time Decided?</label>
                             </div>
 
-                            {event.isDateDecided && (
+                            {event.isDateDecided ? (
                                 <>
                                     <div>
                                         <label className="text-[10px] font-bold uppercase text-gray-400">Date</label>
@@ -985,6 +1005,10 @@ const App: React.FC = () => {
                                         }} onBlur={() => saveQuotation()} />
                                     </div>
                                 </>
+                            ) : (
+                                <div className="col-span-2 bg-gray-50 border border-dashed border-gray-300 rounded p-2 text-xs text-gray-500 italic mb-2">
+                                    Date & Time: To be confirmed by client
+                                </div>
                             )}
 
                             {/* Venue Decided Checkbox */}
@@ -995,12 +1019,16 @@ const App: React.FC = () => {
                                 <label htmlFor={`venue-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Venue Decided?</label>
                             </div>
 
-                            {event.isVenueDecided && (
+                            {event.isVenueDecided ? (
                                 <div className="col-span-2">
                                     <label className="text-[10px] font-bold uppercase text-gray-400">Venue</label>
                                     <input className="w-full text-sm border p-1 rounded" value={event.venue} onChange={e => {
                                         const newEvents = [...data.events]; newEvents[idx].venue = e.target.value; setData({...data, events: newEvents});
                                     }} onBlur={() => saveQuotation()} />
+                                </div>
+                            ) : (
+                                <div className="col-span-2 bg-gray-50 border border-dashed border-gray-300 rounded p-2 text-xs text-gray-500 italic mb-2">
+                                    Venue: To be confirmed by client
                                 </div>
                             )}
 
@@ -1042,10 +1070,6 @@ const App: React.FC = () => {
         );
         
       case 3: // FINANCIALS
-        const totalMilestones = data.financials.paymentMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
-        const remainingAllocation = totals.grandTotal - totalMilestones;
-        const isAllocationExact = remainingAllocation === 0;
-
         return (
           <div className="space-y-6 animate-fadeIn">
             {/* ADD ONS SECTION */}
@@ -1097,109 +1121,18 @@ const App: React.FC = () => {
                         <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Discount</label>
                         <input type="number" className="w-full p-2 border rounded font-mono" value={data.financials.discount} onChange={e => setData({...data, financials: {...data.financials, discount: parseFloat(e.target.value)||0}})} onBlur={() => saveQuotation()}/>
                     </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Advance Amount (₹)</label>
+                        <input type="number" className="w-full p-2 border rounded font-mono" value={data.financials.advanceAmount} onChange={e => setData({...data, financials: {...data.financials, advanceAmount: parseFloat(e.target.value)||0}})} onBlur={() => saveQuotation()}/>
+                    </div>
                 </div>
                 
                 {/* Total Preview */}
                 <div className="mt-4 pt-3 border-t border-yellow-200 text-sm flex flex-col gap-1 text-right">
                     <div className="text-gray-500">Add-ons Total: + {data.addOns.reduce((s,a) => s + (a.price||0), 0)}</div>
                     <div className="font-bold text-gray-800">Grand Total: {totals.grandTotal.toFixed(0)}</div>
-                </div>
-            </div>
-
-            <div className="bg-white border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                     <div>
-                        <h3 className="text-sm font-bold uppercase text-gray-700">Payment Milestones</h3>
-                        <div className={`text-xs mt-1 ${isAllocationExact ? 'text-green-600' : 'text-red-500'}`}>
-                            Milestones Total: {totalMilestones.toFixed(0)} / {totals.grandTotal.toFixed(0)} 
-                            {!isAllocationExact && ` (Diff: ${remainingAllocation.toFixed(0)})`}
-                        </div>
-                     </div>
-                     <button onClick={() => {
-                        // Default to 0 amount
-                        const newMs: PaymentMilestone = { id: `pm-${Date.now()}`, name: 'New Phase', type: 'fixed', value: 0, amount: 0, dueDate: '', isPaid: false };
-                        setData(prev => ({...prev, financials: {...prev.financials, paymentMilestones: [...prev.financials.paymentMilestones, newMs]}}));
-                     }} className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">+ Add Phase</button>
-                </div>
-                
-                <div className="space-y-3">
-                    {data.financials.paymentMilestones.map((ms, idx) => (
-                        <div key={ms.id} className="border rounded p-3 bg-gray-50 relative">
-                             <button onClick={() => {
-                                 const newM = data.financials.paymentMilestones.filter(m => m.id !== ms.id);
-                                 setData({...data, financials: {...data.financials, paymentMilestones: newM}});
-                                 saveQuotation();
-                             }} className="absolute top-2 right-2 text-gray-300 hover:text-red-500"><X size={14} /></button>
-
-                             <div className="flex flex-col md:flex-row gap-3 items-end md:items-center">
-                                <div className="flex-1 w-full">
-                                    <label className="text-[10px] uppercase font-bold text-gray-400">Phase Name</label>
-                                    <input className="w-full text-sm border p-1 rounded" value={ms.name} onChange={e => {
-                                        const arr = [...data.financials.paymentMilestones]; arr[idx].name = e.target.value;
-                                        setData({...data, financials: {...data.financials, paymentMilestones: arr}});
-                                    }} onBlur={() => saveQuotation()} />
-                                </div>
-                                <div className="w-full md:w-40">
-                                     <label className="text-[10px] uppercase font-bold text-gray-400">Amount (₹)</label>
-                                     <input type="number" className="w-full text-sm border p-1 rounded font-mono" 
-                                        value={ms.amount} 
-                                        onChange={e => {
-                                            const val = parseFloat(e.target.value) || 0;
-                                            const arr = [...data.financials.paymentMilestones]; 
-                                            arr[idx].amount = val;
-                                            arr[idx].value = val; // Sync value just in case
-                                            setData({...data, financials: {...data.financials, paymentMilestones: arr}});
-                                        }} 
-                                        onBlur={() => saveQuotation()} 
-                                     />
-                                </div>
-                             </div>
-
-                             {/* Payment Status Toggle */}
-                             <div className="mt-3 pt-2 border-t border-gray-200 flex flex-wrap items-center gap-3">
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                    <input type="checkbox" checked={ms.isPaid} onChange={e => {
-                                        const arr = [...data.financials.paymentMilestones]; arr[idx].isPaid = e.target.checked;
-                                        setData({...data, financials: {...data.financials, paymentMilestones: arr}});
-                                        saveQuotation();
-                                    }} />
-                                    <span className={`text-sm font-bold ${ms.isPaid ? 'text-green-600' : 'text-gray-500'}`}>{ms.isPaid ? 'PAID' : 'Mark as Paid'}</span>
-                                </label>
-                                {ms.isPaid && (
-                                    <>
-                                        <select className="text-xs border p-1 rounded flex-1 md:flex-none" value={ms.method || ''} onChange={e => {
-                                            const arr = [...data.financials.paymentMilestones]; arr[idx].method = e.target.value as any; setData({...data, financials: {...data.financials, paymentMilestones: arr}}); saveQuotation();
-                                        }}>
-                                            <option value="">Method?</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                        </select>
-                                        <input type="date" className="text-xs border p-1 rounded flex-1 md:flex-none" value={ms.paidAt || ''} onChange={e => {
-                                             const arr = [...data.financials.paymentMilestones]; arr[idx].paidAt = e.target.value; setData({...data, financials: {...data.financials, paymentMilestones: arr}}); saveQuotation();
-                                        }} />
-                                        <label className="text-xs text-blue-600 cursor-pointer flex items-center gap-1 hover:underline">
-                                            <Upload size={12}/> {ms.proofFile ? 'Change Proof' : 'Upload Proof'}
-                                            <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
-                                                if (e.target.files && e.target.files[0]) {
-                                                    const file = e.target.files[0];
-                                                    try {
-                                                        const base64 = await fileToBase64(file);
-                                                        const arr = [...data.financials.paymentMilestones]; 
-                                                        arr[idx].proofFile = base64; 
-                                                        setData({...data, financials: {...data.financials, paymentMilestones: arr}}); 
-                                                        saveQuotation();
-                                                    } catch (err) {
-                                                        console.error("File upload failed", err);
-                                                    }
-                                                }
-                                            }} />
-                                        </label>
-                                    </>
-                                )}
-                             </div>
-                        </div>
-                    ))}
+                    {data.financials.advanceAmount > 0 && <div className="text-green-600 font-bold">Advance Paid: - {data.financials.advanceAmount}</div>}
+                    <div className="text-red-600 font-bold border-t border-yellow-200 mt-1 pt-1">Balance Due: {totals.balanceDue.toFixed(0)}</div>
                 </div>
             </div>
           </div>

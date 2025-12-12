@@ -40,14 +40,14 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
     <div id="printable-quotation" className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[900px] mx-auto text-[#333] printable-area">
       
       {/* HEADER */}
-      <div className="bg-[#ffd75b] p-6 flex justify-between items-start print:bg-[#ffd75b] print:text-black" style={{ backgroundColor: '#ffd75b', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
-        <div>
+      <div className="bg-[#ffd75b] p-6 flex flex-col md:flex-row justify-between items-start gap-6 print:flex-row" style={{ backgroundColor: '#ffd75b', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
+        <div className="flex-1 w-full md:w-auto">
           <h1 className="text-2xl font-bold uppercase tracking-wide">Mera Studio & Films</h1>
           <p className="text-sm mt-1">Wedding • Pre-Wedding • Cinematic Films • Albums</p>
           <p className="text-sm">Varanasi • Lucknow • Pan India</p>
         </div>
-        <div className="text-right">
-          <div className="w-[120px] h-[65px] bg-white border border-dashed border-gray-800 rounded-lg flex items-center justify-center text-xs font-bold mb-2 ml-auto">
+        <div className="flex-1 w-full md:w-auto flex flex-col md:items-end text-left md:text-right">
+          <div className="w-[120px] h-[65px] bg-white border border-dashed border-gray-800 rounded-lg flex items-center justify-center text-xs font-bold mb-4 md:mb-2 self-start md:self-auto ml-auto md:ml-0">
             <img src="https://picsum.photos/120/65?grayscale" alt="Logo" className="rounded-lg opacity-80" />
           </div>
           <p className="text-xs mb-0.5"><b>Quotation No:</b> {data.client.quoNumber}</p>
@@ -64,7 +64,8 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
           <p><b>Company:</b> {data.client.company || '-'}</p>
           <p><b>Phone:</b> {data.client.phone}</p>
           <p><b>Email:</b> {data.client.email}</p>
-          <p className="col-span-2"><b>Locations:</b> {data.client.locations}</p>
+          <p className="col-span-2"><b>Address:</b> {data.client.address || '-'}</p>
+          <p className="col-span-2"><b>Event Locations:</b> {data.client.locations}</p>
         </div>
       </div>
 
@@ -76,12 +77,12 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
           <div key={event.id} className="mb-4 bg-gray-50 rounded-lg p-4 border border-gray-200 text-sm break-inside-avoid print:bg-gray-100">
             <div className="font-bold text-gray-900 mb-2">📍 {event.name || `Event ${index + 1}`}</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-gray-700">
-              {event.isDateDecided && (
-                  <p><b>Date:</b> {event.date} • <b>Time:</b> {event.timeRange}</p>
-              )}
-              {event.isVenueDecided && (
-                  <p><b>Venue:</b> {event.venue}</p>
-              )}
+                <p>
+                    <b>Date:</b> {event.isDateDecided && event.date ? `${event.date} • ${event.timeRange}` : <span className="italic text-gray-500">To be confirmed by client</span>}
+                </p>
+                <p>
+                    <b>Venue:</b> {event.isVenueDecided && event.venue ? event.venue : <span className="italic text-gray-500">To be confirmed by client</span>}
+                </p>
               <p><b>Coverage:</b> {event.duration}</p>
               <p><b>Price:</b> {formatCurrency(event.approxCost)}</p>
               <p className="md:col-span-2"><b>Team:</b> {renderTeamString(event.team)}</p>
@@ -116,13 +117,15 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
             <span>Grand Total</span>
             <span>{formatCurrency(totals.grandTotal)}</span>
           </div>
+          
+          {data.financials.advanceAmount > 0 && (
+             <div className="flex justify-between mb-2 text-green-700 font-medium border-t border-[#c9b26a] pt-2 mt-2 border-dashed">
+                <span>Advance Paid</span>
+                <span>- {formatCurrency(data.financials.advanceAmount)}</span>
+             </div>
+          )}
 
-          <div className="flex justify-between mb-2 text-green-700 font-medium">
-            <span>Total Paid</span>
-            <span>{formatCurrency(totals.totalPaid)}</span>
-          </div>
-
-           <div className="border-t border-[#c9b26a] mt-2 pt-2 flex justify-between font-bold text-red-600">
+           <div className="flex justify-between font-bold text-red-600 mt-2">
             <span>Balance Due</span>
             <span>{formatCurrency(totals.balanceDue)}</span>
           </div>
@@ -162,45 +165,11 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
         </div>
       </div>
 
-      {/* PAYMENT & LOGISTICS */}
+      {/* BANK DETAILS & LOGISTICS */}
       <div className="p-7 border-b border-gray-100 break-inside-avoid">
-        <h3 className="font-bold text-sm uppercase mb-3 tracking-wide text-gray-800 border-l-4 border-[#ffd75b] pl-2" style={{ borderColor: '#ffd75b' }}>Payment Schedule & Logistics</h3>
+        <h3 className="font-bold text-sm uppercase mb-3 tracking-wide text-gray-800 border-l-4 border-[#ffd75b] pl-2" style={{ borderColor: '#ffd75b' }}>Bank Details & Logistics</h3>
         
         <div className="space-y-6">
-            {/* Structured Payment Schedule */}
-            <div>
-                <table className="w-full text-sm border-collapse border border-gray-200 mb-4">
-                  <thead>
-                    <tr className="bg-gray-50 text-left text-xs uppercase print:bg-gray-200">
-                      <th className="p-2 border">Phase / Milestone</th>
-                      <th className="p-2 border text-right">Amount</th>
-                      <th className="p-2 border text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.financials.paymentMilestones.map((ms) => (
-                      <tr key={ms.id} className={ms.isPaid ? 'bg-green-50 print:bg-green-50' : ''}>
-                        <td className="p-2 border font-medium">
-                          {ms.name} 
-                        </td>
-                        <td className="p-2 border text-right font-mono">{formatCurrency(ms.amount)}</td>
-                        <td className="p-2 border text-center">
-                          {ms.isPaid ? (
-                            <div className="flex flex-col items-center">
-                              <span className="px-2 py-0.5 bg-green-200 text-green-800 text-[10px] font-bold rounded uppercase print:border print:border-green-600">Paid</span>
-                              {ms.paidAt && <span className="text-[9px] text-gray-500 mt-0.5">{ms.paidAt}</span>}
-                              {ms.method && <span className="text-[9px] text-gray-500">via {ms.method}</span>}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-500">Due</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-            </div>
-
             <div className="flex flex-row gap-8">
                 <div className="flex-1 space-y-4 text-sm">
                     <div>
@@ -233,8 +202,8 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
 
       {/* SIGNATURES */}
       <div className="p-7 break-inside-avoid">
-        <h3 className="font-bold text-sm uppercase mb-6 tracking-wide text-gray-800 border-l-4 border-[#ffd75b] pl-2" style={{ borderColor: '#ffd75b' }}>Approval</h3>
-        <p className="text-sm text-gray-600 mb-8">By signing below, client confirms agreement with the quotation and terms.</p>
+        <h3 className="font-bold text-sm uppercase mb-6 tracking-wide text-gray-800 border-l-4 border-[#ffd75b] pl-2" style={{ borderColor: '#ffd75b' }}>Acceptance</h3>
+        <p className="text-sm text-gray-600 mb-8">This quotation is digitally generated. Confirmation via email or advance payment implies acceptance of the terms and conditions.</p>
         
         <div className="flex justify-between gap-12 mt-12">
             <div className="flex-1 text-center">

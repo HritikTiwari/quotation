@@ -11,8 +11,8 @@ export const INITIAL_SKILLS: SkillMaster[] = [
 ];
 
 export const INITIAL_CLIENTS: ClientMaster[] = [
-  { id: 'c1', name: 'Rahul Sharma & Priya Verma', company: '', phone: '+91-9876543210', email: 'rahul.priya@example.com', notes: 'Referral from Instagram' },
-  { id: 'c2', name: 'Amit & Neha', company: 'Tech Solutions Pvt Ltd', phone: '+91-9988776655', email: 'amit.neha@gmail.com', notes: 'Varanasi Local' }
+  { id: 'c1', name: 'Rahul Sharma & Priya Verma', company: '', phone: '+91-9876543210', email: 'rahul.priya@example.com', address: '123, Civil Lines, Varanasi', notes: 'Referral from Instagram' },
+  { id: 'c2', name: 'Amit & Neha', company: 'Tech Solutions Pvt Ltd', phone: '+91-9988776655', email: 'amit.neha@gmail.com', address: '45, Lanka, Varanasi', notes: 'Varanasi Local' }
 ];
 
 export const INITIAL_EVENT_TEMPLATES: EventTemplate[] = [
@@ -75,6 +75,7 @@ const BASE_QUOTATION: QuotationData = {
     company: '',
     phone: '',
     email: '',
+    address: '',
     tagline: '',
     locations: '',
     reference: '',
@@ -88,6 +89,7 @@ const BASE_QUOTATION: QuotationData = {
     packageName: '',
     baseAmount: 0,
     discount: 0,
+    advanceAmount: 0,
     paymentMilestones: [],
     notes: ''
   },
@@ -118,6 +120,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
                 company: 'Sharma Industries',
                 phone: '+91-9876543210',
                 email: 'rahul.priya@example.com',
+                address: '12-A, Residency Road, Varanasi',
                 tagline: 'A Royal Celebration',
                 locations: 'Taj Hotel, Varanasi',
                 reference: 'Instagram',
@@ -171,6 +174,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
                 packageName: 'Royal Wedding Package',
                 baseAmount: 155000,
                 discount: 10000,
+                advanceAmount: 50000,
                 paymentMilestones: [
                     { id: 'pm1', name: 'Booking Amount', type: 'fixed', value: 50000, amount: 50000, dueDate: addDays(-30), isPaid: true, paidAt: '2025-01-15', method: 'UPI' },
                     { id: 'pm2', name: 'Event Day Advance', type: 'fixed', value: 80000, amount: 80000, dueDate: addDays(1), isPaid: false },
@@ -202,7 +206,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
             events: [
                 { id: 'e3', name: 'Sangeet', isDateDecided: true, date: addDays(5), timeRange: '5 PM', isVenueDecided: true, venue: 'City Club', duration: '5h', team: [], notes: '', approxCost: 40000 }
             ],
-            financials: { ...BASE_QUOTATION.financials, baseAmount: 40000, paymentMilestones: [{ id: 'pm2', name: 'Adv', type: 'fixed', value: 10000, amount: 10000, dueDate: '', isPaid: false }] }
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 40000, advanceAmount: 0, paymentMilestones: [{ id: 'pm2', name: 'Adv', type: 'fixed', value: 10000, amount: 10000, dueDate: '', isPaid: false }] }
         },
         history: []
     },
@@ -216,7 +220,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
             events: [
                 { id: 'e4', name: 'Pre-Wedding', isDateDecided: true, date: addDays(10), timeRange: '6 AM', isVenueDecided: true, venue: 'Ghats', duration: '4h', team: [], notes: '', approxCost: 15000 }
             ],
-            financials: { ...BASE_QUOTATION.financials, baseAmount: 15000, paymentMilestones: [] }
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 15000, advanceAmount: 0, paymentMilestones: [] }
         },
         history: []
     },
@@ -230,7 +234,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
             events: [
                 { id: 'e5', name: 'Conference', isDateDecided: true, date: addDays(-2), timeRange: '9 AM', isVenueDecided: true, venue: 'Convention Center', duration: '8h', team: [], notes: '', approxCost: 20000 }
             ],
-            financials: { ...BASE_QUOTATION.financials, baseAmount: 20000, paymentMilestones: [] }
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 20000, advanceAmount: 0, paymentMilestones: [] }
         },
         history: []
     },
@@ -245,7 +249,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
                 { id: 'e6', name: 'Engagement', isDateDecided: true, date: addDays(15), timeRange: '6 PM', isVenueDecided: true, venue: 'Home', duration: '4h', team: [], notes: '', approxCost: 25000 }
             ],
             // Accepted but NO Payment made yet
-            financials: { ...BASE_QUOTATION.financials, baseAmount: 25000, paymentMilestones: [{ id: 'pm3', name: 'Adv', type: 'fixed', value: 5000, amount: 5000, dueDate: '', isPaid: false }] }
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 25000, advanceAmount: 5000, paymentMilestones: [{ id: 'pm3', name: 'Adv', type: 'fixed', value: 5000, amount: 5000, dueDate: '', isPaid: false }] }
         },
         history: []
     }

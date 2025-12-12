@@ -5,6 +5,7 @@ export interface ClientDetails {
     company: string; // New field
     phone: string;
     email: string;
+    address: string; // New field
     tagline: string;
     locations: string;
     reference: string;
@@ -20,6 +21,7 @@ export interface ClientDetails {
     company?: string;
     phone: string;
     email: string;
+    address?: string; // New field
     notes?: string;
   }
 
@@ -76,6 +78,7 @@ export interface ClientDetails {
     packageName: string;
     baseAmount: number;
     discount: number;
+    advanceAmount: number; // New field for advance payment
     paymentMilestones: PaymentMilestone[];
     notes: string;
   }
