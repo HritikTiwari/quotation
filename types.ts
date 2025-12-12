@@ -1,4 +1,5 @@
 
+
 export interface ClientDetails {
     name: string;
     company: string; // New field
@@ -45,8 +46,10 @@ export interface ClientDetails {
   export interface EventItem {
     id: string;
     name: string;
+    isDateDecided: boolean; // New field
     date: string;
     timeRange: string;
+    isVenueDecided: boolean; // New field
     venue: string;
     duration: string;
     team: TeamMember[];
@@ -73,7 +76,6 @@ export interface ClientDetails {
     packageName: string;
     baseAmount: number;
     discount: number;
-    gstRate: number;
     paymentMilestones: PaymentMilestone[];
     notes: string;
   }
@@ -104,7 +106,6 @@ export interface ClientDetails {
   
   export interface CalculatedTotals {
     packageAfterDiscount: number;
-    gstAmount: number;
     grandTotal: number;
     totalPaid: number;
     balanceDue: number;

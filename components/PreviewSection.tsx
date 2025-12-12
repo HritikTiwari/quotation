@@ -76,8 +76,12 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
           <div key={event.id} className="mb-4 bg-gray-50 rounded-lg p-4 border border-gray-200 text-sm break-inside-avoid print:bg-gray-100">
             <div className="font-bold text-gray-900 mb-2">📍 {event.name || `Event ${index + 1}`}</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-gray-700">
-              <p><b>Date:</b> {event.date} • <b>Time:</b> {event.timeRange}</p>
-              <p><b>Venue:</b> {event.venue}</p>
+              {event.isDateDecided && (
+                  <p><b>Date:</b> {event.date} • <b>Time:</b> {event.timeRange}</p>
+              )}
+              {event.isVenueDecided && (
+                  <p><b>Venue:</b> {event.venue}</p>
+              )}
               <p><b>Coverage:</b> {event.duration}</p>
               <p><b>Price:</b> {formatCurrency(event.approxCost)}</p>
               <p className="md:col-span-2"><b>Team:</b> {renderTeamString(event.team)}</p>
@@ -107,13 +111,9 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
               <span>+ {formatCurrency(addOnsTotal)}</span>
             </div>
           )}
-          <div className="flex justify-between mb-2">
-            <span>GST ({data.financials.gstRate}%)</span>
-            <span>{formatCurrency(totals.gstAmount)}</span>
-          </div>
           
           <div className="border-t border-[#c9b26a] my-2 pt-2 flex justify-between font-bold text-gray-900 text-base">
-            <span>Grand Total (Incl. GST)</span>
+            <span>Grand Total</span>
             <span>{formatCurrency(totals.grandTotal)}</span>
           </div>
 
@@ -173,7 +173,6 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
                   <thead>
                     <tr className="bg-gray-50 text-left text-xs uppercase print:bg-gray-200">
                       <th className="p-2 border">Phase / Milestone</th>
-                      <th className="p-2 border">Due Date</th>
                       <th className="p-2 border text-right">Amount</th>
                       <th className="p-2 border text-center">Status</th>
                     </tr>
@@ -183,11 +182,7 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
                       <tr key={ms.id} className={ms.isPaid ? 'bg-green-50 print:bg-green-50' : ''}>
                         <td className="p-2 border font-medium">
                           {ms.name} 
-                          <span className="text-gray-400 text-xs ml-1 font-normal">
-                             ({ms.type === 'percentage' ? `${ms.value}%` : 'Fixed'})
-                          </span>
                         </td>
-                        <td className="p-2 border">{ms.dueDate || '-'}</td>
                         <td className="p-2 border text-right font-mono">{formatCurrency(ms.amount)}</td>
                         <td className="p-2 border text-center">
                           {ms.isPaid ? (

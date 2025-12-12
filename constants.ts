@@ -1,5 +1,4 @@
-
-import { QuotationData, ClientMaster, EventTemplate, SkillMaster } from './types';
+import { QuotationData, ClientMaster, EventTemplate, SkillMaster, QuotationRecord } from './types';
 
 export const INITIAL_SKILLS: SkillMaster[] = [
   { id: 's1', name: 'Candid Photographer' },
@@ -62,96 +61,192 @@ export const INITIAL_EVENT_TEMPLATES: EventTemplate[] = [
   }
 ];
 
-export const INITIAL_QUOTATION: QuotationData = {
+// Helper to generate dates relative to today
+const today = new Date();
+const addDays = (days: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+};
+
+const BASE_QUOTATION: QuotationData = {
   client: {
-    name: 'Rahul Sharma & Priya Verma',
+    name: '',
     company: '',
-    phone: '+91-9876543210',
-    email: 'rahul.priya@example.com',
-    tagline: 'Wedding Coverage – Lucknow & Varanasi',
-    locations: 'Lucknow (Haldi, Sangeet, Wedding) & Varanasi (Reception)',
-    reference: 'Instagram / Friend Reference',
-    date: new Date().toISOString().split('T')[0],
-    validTill: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    quoNumber: 'QUO-2025-0012',
+    phone: '',
+    email: '',
+    tagline: '',
+    locations: '',
+    reference: '',
+    date: today.toISOString().split('T')[0],
+    validTill: addDays(14),
+    quoNumber: '',
     status: 'Draft'
   },
-  events: [
-    {
-      id: '1',
-      name: 'Haldi Ceremony',
-      date: '2026-11-24',
-      timeRange: '10:00 AM – 2:00 PM',
-      venue: 'Lucknow (Home)',
-      duration: '4–5 Hours',
-      team: [
-        { skillId: 's1', count: 1 },
-        { skillId: 's2', count: 1 }
-      ],
-      notes: 'Day function – mostly family ritual coverage.',
-      approxCost: 25000
-    },
-    {
-      id: '2',
-      name: 'Sangeet Ceremony',
-      date: '2026-11-25',
-      timeRange: '5:00 PM – 11:00 PM',
-      venue: 'Lucknow Banquet',
-      duration: '5–6 Hours',
-      team: [
-        { skillId: 's1', count: 1 },
-        { skillId: 's3', count: 1 },
-        { skillId: 's2', count: 1 }
-      ],
-      notes: '',
-      approxCost: 40000
-    }
-  ],
+  events: [],
   financials: {
-    packageName: 'Complete Mix Package – Haldi + Sangeet + Wedding + Reception',
-    baseAmount: 65000, // Correct sum of 25000 + 40000
-    discount: 5000,
-    gstRate: 18,
-    // Calculations: 65000 - 5000 = 60000. GST 18% = 10800. Total = 70800.
-    paymentMilestones: [
-        { id: '1', name: 'Booking Advance', type: 'percentage', value: 30, amount: 21240, dueDate: '', isPaid: true, paidAt: '2025-01-05', method: 'UPI' },
-        { id: '2', name: 'Wedding Day', type: 'percentage', value: 40, amount: 28320, dueDate: '2026-11-29', isPaid: false },
-        { id: '3', name: 'Final Delivery', type: 'percentage', value: 30, amount: 21240, dueDate: '', isPaid: false }
-    ],
-    notes: 'Includes travel within city limits and standard editing.'
+    packageName: '',
+    baseAmount: 0,
+    discount: 0,
+    paymentMilestones: [],
+    notes: ''
   },
-  addOns: [
-    {
-      id: '1',
-      service: 'LED Wall Live',
-      description: 'Live projection setup with LED',
-      price: 15000
-    }
-  ],
+  addOns: [],
   meta: {
-    deliverables: `All Edited Photos (Approx 2500–3500 across events)
-Wedding Cinematic Film (5–10 minutes)
-Sangeet Film (5–7 minutes)
-Full Wedding Video (1.5–2.5 hours)
-Sangeet Full Video (1–1.5 hours)
-Reels (3 Custom Reels – 20–30 sec each)
-Premium Wedding Album – 40 Sheets
-Mini Album – 1 Piece
-Premium Pen Drive + Box
-Online Cloud Gallery`,
-    deliveryTimeline: `Photos: 10–12 Days
-Videos: 25–30 Days
-Albums: 10–15 Days After Selection`,
-    bankDetails: `A/C: XXXXXXXX1234
-IFSC: BARB0XXXXXX
-UPI: merastudio@ybl`,
-    terms: `Booking is confirmed only after advance payment.
-Extra hours are chargeable as per studio policy.
-Travel & stay for outstation events must be arranged by the client.
-Video/music selection is client’s responsibility.
-Studio may use selected photos/videos for portfolio.
-All disputes subject to Varanasi jurisdiction.`,
-    clientSignName: 'Rahul Sharma',
-    studioSignName: 'Mera Studio & Films – Authorized Signatory'
+    deliverables: 'Standard Deliverables',
+    deliveryTimeline: '30 Days',
+    bankDetails: 'Bank info...',
+    terms: 'Standard Terms',
+    clientSignName: '',
+    studioSignName: 'Mera Studio'
   }
 };
+
+export const INITIAL_QUOTATION: QuotationData = {
+    ...BASE_QUOTATION,
+    client: { ...BASE_QUOTATION.client, name: 'Sample Client', quoNumber: 'QUO-SAMPLE' }
+};
+
+export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
+    {
+        id: 'Q-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: {
+            client: {
+                name: 'Rahul Sharma & Priya Verma',
+                company: 'Sharma Industries',
+                phone: '+91-9876543210',
+                email: 'rahul.priya@example.com',
+                tagline: 'A Royal Celebration',
+                locations: 'Taj Hotel, Varanasi',
+                reference: 'Instagram',
+                date: addDays(2),
+                validTill: addDays(10),
+                quoNumber: 'QUO-2025-001',
+                status: 'Accepted'
+            },
+            events: [
+                { 
+                    id: 'e1', 
+                    name: 'Haldi & Mehendi', 
+                    isDateDecided: true, 
+                    date: addDays(1), 
+                    timeRange: '11:00 AM - 4:00 PM', 
+                    isVenueDecided: true, 
+                    venue: 'Poolside, Taj Hotel', 
+                    duration: '5 Hours', 
+                    team: [
+                        { skillId: 's1', count: 2 }, // Candid
+                        { skillId: 's3', count: 1 }  // Cinematographer
+                    ], 
+                    notes: 'Fun and vibrant vibes', 
+                    approxCost: 35000 
+                },
+                { 
+                    id: 'e2', 
+                    name: 'Wedding Ceremony', 
+                    isDateDecided: true, 
+                    date: addDays(2), 
+                    timeRange: '6:00 PM onwards', 
+                    isVenueDecided: true, 
+                    venue: 'Grand Ballroom, Taj Hotel', 
+                    duration: '8 Hours', 
+                    team: [
+                        { skillId: 's1', count: 2 }, 
+                        { skillId: 's2', count: 1 }, 
+                        { skillId: 's3', count: 2 }, 
+                        { skillId: 's4', count: 1 },
+                        { skillId: 's5', count: 1 }
+                    ], 
+                    notes: 'Focus on rituals and bride entry', 
+                    approxCost: 120000 
+                }
+            ],
+            addOns: [
+                { id: 'add1', service: 'Drone Coverage', description: '4K Drone shots for entry and varmala', price: 15000 },
+                { id: 'add2', service: 'Same Day Edit', description: '3-minute highlight video shown at reception', price: 25000 }
+            ],
+            financials: {
+                packageName: 'Royal Wedding Package',
+                baseAmount: 155000,
+                discount: 10000,
+                paymentMilestones: [
+                    { id: 'pm1', name: 'Booking Amount', type: 'fixed', value: 50000, amount: 50000, dueDate: addDays(-30), isPaid: true, paidAt: '2025-01-15', method: 'UPI' },
+                    { id: 'pm2', name: 'Event Day Advance', type: 'fixed', value: 80000, amount: 80000, dueDate: addDays(1), isPaid: false },
+                    { id: 'pm3', name: 'Final Deliverables', type: 'fixed', value: 55000, amount: 55000, dueDate: addDays(45), isPaid: false }
+                ],
+                notes: 'All prices inclusive of taxes.'
+            },
+            meta: {
+                deliverables: "1. 300+ Edited Candid Photographs\n2. 3-5 Minute Cinematic Teaser\n3. 25-30 Minute Wedding Highlight Film\n4. Traditional Full Video (2-3 Hours)\n5. One Premium Leather Album (40 Sheets)",
+                deliveryTimeline: "Photos: 15 Days after event\nTeaser: 20 Days after event\nFull Films & Album: 45-60 Days after event selection",
+                bankDetails: "Mera Studio & Films\nAccount No: 1234567890\nIFSC: HDFC0001234\nBranch: Varanasi Main",
+                terms: "1. 50% advance payment is mandatory to block dates.\n2. Travel and stay for the team to be provided by the client.\n3. Raw footage will be provided on a hard drive supplied by the client.\n4. Copyrights of the images/videos remain with Mera Studio.",
+                clientSignName: "Rahul Sharma",
+                studioSignName: "Mera Studio Admin"
+            }
+        },
+        history: [
+            { id: 'h1', timestamp: new Date().toISOString(), user: 'Admin', action: 'Quotation Created' },
+            { id: 'h2', timestamp: new Date().toISOString(), user: 'Admin', action: 'Status changed to Accepted' }
+        ]
+    },
+    {
+        id: 'Q-002',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: {
+            ...BASE_QUOTATION,
+            client: { ...BASE_QUOTATION.client, name: 'Amit & Neha', quoNumber: 'QUO-2025-002', status: 'Sent' },
+            events: [
+                { id: 'e3', name: 'Sangeet', isDateDecided: true, date: addDays(5), timeRange: '5 PM', isVenueDecided: true, venue: 'City Club', duration: '5h', team: [], notes: '', approxCost: 40000 }
+            ],
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 40000, paymentMilestones: [{ id: 'pm2', name: 'Adv', type: 'fixed', value: 10000, amount: 10000, dueDate: '', isPaid: false }] }
+        },
+        history: []
+    },
+    {
+        id: 'Q-003',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: {
+            ...BASE_QUOTATION,
+            client: { ...BASE_QUOTATION.client, name: 'Vikas & Simran', quoNumber: 'QUO-2025-003', status: 'Draft' },
+            events: [
+                { id: 'e4', name: 'Pre-Wedding', isDateDecided: true, date: addDays(10), timeRange: '6 AM', isVenueDecided: true, venue: 'Ghats', duration: '4h', team: [], notes: '', approxCost: 15000 }
+            ],
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 15000, paymentMilestones: [] }
+        },
+        history: []
+    },
+    {
+        id: 'Q-004',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: {
+            ...BASE_QUOTATION,
+            client: { ...BASE_QUOTATION.client, name: 'Corporate Event', quoNumber: 'QUO-2025-004', status: 'Rejected' },
+            events: [
+                { id: 'e5', name: 'Conference', isDateDecided: true, date: addDays(-2), timeRange: '9 AM', isVenueDecided: true, venue: 'Convention Center', duration: '8h', team: [], notes: '', approxCost: 20000 }
+            ],
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 20000, paymentMilestones: [] }
+        },
+        history: []
+    },
+    {
+        id: 'Q-005',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: {
+            ...BASE_QUOTATION,
+            client: { ...BASE_QUOTATION.client, name: 'Suresh & Family', quoNumber: 'QUO-2025-005', status: 'Accepted' },
+            events: [
+                { id: 'e6', name: 'Engagement', isDateDecided: true, date: addDays(15), timeRange: '6 PM', isVenueDecided: true, venue: 'Home', duration: '4h', team: [], notes: '', approxCost: 25000 }
+            ],
+            // Accepted but NO Payment made yet
+            financials: { ...BASE_QUOTATION.financials, baseAmount: 25000, paymentMilestones: [{ id: 'pm3', name: 'Adv', type: 'fixed', value: 5000, amount: 5000, dueDate: '', isPaid: false }] }
+        },
+        history: []
+    }
+];

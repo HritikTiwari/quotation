@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Users, Zap, FileText, Plus, Trash2, Edit2, 
-  ChevronRight, ChevronLeft, Save, Menu, X, Clock, Upload, CheckCircle, Search, AlertCircle, Download
+  ChevronRight, ChevronLeft, Save, Menu, X, Clock, Upload, CheckCircle, Search, AlertCircle, Download, Calendar as CalendarIcon, List, Eye, PenTool
 } from 'lucide-react';
 import { 
-  INITIAL_QUOTATION, INITIAL_CLIENTS, INITIAL_SKILLS, INITIAL_EVENT_TEMPLATES 
+  INITIAL_QUOTATION, INITIAL_CLIENTS, INITIAL_SKILLS, INITIAL_EVENT_TEMPLATES, SAMPLE_QUOTATIONS_LIST 
 } from './constants';
 import { 
   QuotationData, CalculatedTotals, ClientMaster, SkillMaster, EventTemplate, 
@@ -25,6 +25,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 const App: React.FC = () => {
   // --- STATE ---
   const [view, setView] = useState<'dashboard' | 'editor' | 'clients' | 'skills' | 'templates'>('dashboard');
+  const [dashboardView, setDashboardView] = useState<'list' | 'calendar'>('calendar');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Master Data
@@ -39,6 +40,9 @@ const App: React.FC = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [historyModalQuotationId, setHistoryModalQuotationId] = useState<string | null>(null);
 
+  // Mobile Editor State
+  const [mobileTab, setMobileTab] = useState<'form' | 'preview'>('form');
+
   // Skill Creation UI State
   const [activeSkillInputId, setActiveSkillInputId] = useState<string | null>(null);
   const [tempSkillInput, setTempSkillInput] = useState('');
@@ -47,19 +51,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Load initial sample quotation if list is empty
     if (quotations.length === 0) {
-      const initialRecord: QuotationRecord = {
-        id: 'Q-SAMPLE-001',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        data: INITIAL_QUOTATION,
-        history: [{
-            id: 'h1',
-            timestamp: new Date().toISOString(),
-            user: 'System',
-            action: 'Initial Quotation Created'
-        }]
-      };
-      setQuotations([initialRecord]);
+      setQuotations(SAMPLE_QUOTATIONS_LIST);
     }
   }, []);
 
@@ -75,11 +67,10 @@ const App: React.FC = () => {
     // Base amount is typically sum of events. Add-ons are usually separate line items but included in Grand Total.
     const packageAfterDiscount = q.financials.baseAmount - q.financials.discount;
     
-    // Taxable Amount (Package + Add-ons)
-    const taxableAmount = packageAfterDiscount + totalAddOns;
+    // Taxable Amount (Package + Add-ons) - Now represents Grand Total as GST is removed
+    const grandTotal = packageAfterDiscount + totalAddOns;
     
-    const gstAmount = (taxableAmount * q.financials.gstRate) / 100;
-    const grandTotal = taxableAmount + gstAmount;
+    // GST removed
     
     const totalPaid = q.financials.paymentMilestones
         .filter(m => m.isPaid)
@@ -89,7 +80,6 @@ const App: React.FC = () => {
 
     return {
         packageAfterDiscount,
-        gstAmount,
         grandTotal,
         totalPaid,
         balanceDue,
@@ -136,6 +126,7 @@ const App: React.FC = () => {
     setActiveQuotationId(newId);
     setData(newRecord.data);
     setActiveStep(1);
+    setMobileTab('form');
     setView('editor');
     setSidebarOpen(false); // Close sidebar on mobile
   };
@@ -147,6 +138,7 @@ const App: React.FC = () => {
       setActiveQuotationId(id);
       setData(JSON.parse(JSON.stringify(record.data))); // Deep copy
       setActiveStep(1);
+      setMobileTab('form');
       setView('editor');
     }
   };
@@ -302,73 +294,229 @@ const App: React.FC = () => {
     </>
   );
 
+  const CalendarView = () => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const getDaysInMonth = (date: Date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        return new Date(year, month + 1, 0).getDate();
+    };
+
+    const getFirstDayOfMonth = (date: Date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        return new Date(year, month, 1).getDay();
+    };
+
+    const formatDate = (date: Date) => {
+        return date.toISOString().split('T')[0];
+    };
+
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDay = getFirstDayOfMonth(currentDate);
+    
+    // Prepare events mapping
+    const eventsMap: {[key: string]: Array<{id: string, name: string, status: string, isPaid: boolean, quoId: string, clientName: string}>} = {};
+    
+    quotations.forEach(q => {
+        const status = q.data.client.status;
+        const paidAmount = q.data.financials.paymentMilestones.filter(m => m.isPaid).reduce((s, m) => s + m.amount, 0);
+        const isPaid = paidAmount > 0;
+
+        q.data.events.forEach(ev => {
+            if (ev.isDateDecided && ev.date) {
+                if (!eventsMap[ev.date]) eventsMap[ev.date] = [];
+                eventsMap[ev.date].push({
+                    id: ev.id,
+                    name: ev.name,
+                    status: status,
+                    isPaid: isPaid,
+                    quoId: q.id,
+                    clientName: q.data.client.name
+                });
+            }
+        });
+    });
+
+    const renderCalendarDays = () => {
+        const days = [];
+        // Empty slots for previous month
+        for (let i = 0; i < firstDay; i++) {
+            days.push(<div key={`empty-${i}`} className="h-20 md:h-32 bg-gray-50 border-r border-b border-gray-100"></div>);
+        }
+        
+        // Days
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
+            const dateKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            
+            const dayEvents = eventsMap[dateKey] || [];
+
+            days.push(
+                <div key={i} className="min-h-[80px] md:h-32 bg-white border-r border-b border-gray-100 p-1 md:p-2 relative hover:bg-gray-50 transition-colors group">
+                    <span className={`text-xs md:text-sm font-bold ${dayEvents.length > 0 ? 'text-gray-800' : 'text-gray-400'}`}>{i}</span>
+                    <div className="mt-1 space-y-1 overflow-y-auto max-h-[60px] md:max-h-[80px] no-scrollbar">
+                        {dayEvents.map((ev, idx) => {
+                            // Color Logic
+                            let bgClass = "bg-gray-200 text-gray-800 border-gray-300"; // Draft default
+                            if (ev.status === 'Rejected') {
+                                bgClass = "bg-red-100 text-red-800 border-red-200";
+                            } else if (ev.isPaid) {
+                                bgClass = "bg-green-100 text-green-800 border-green-200 ring-1 ring-green-300"; // Advance Paid
+                            } else if (ev.status === 'Accepted') {
+                                bgClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
+                            } else if (ev.status === 'Sent') {
+                                bgClass = "bg-blue-100 text-blue-800 border-blue-200";
+                            }
+
+                            return (
+                                <div 
+                                    key={idx} 
+                                    onClick={() => handleEditQuotation(ev.quoId)}
+                                    className={`text-[9px] md:text-[10px] px-1 md:px-1.5 py-0.5 md:py-1 rounded border cursor-pointer truncate ${bgClass} hover:opacity-80 transition-opacity`}
+                                    title={`${ev.name} - ${ev.clientName} (${ev.status}${ev.isPaid ? ', Advance Paid' : ''})`}
+                                >
+                                    {ev.isPaid && <span className="font-bold mr-1">₹</span>}
+                                    {ev.name}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+        return days;
+    };
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
+            {/* Calendar Header */}
+            <div className="p-4 flex flex-col md:flex-row justify-between items-center border-b gap-4">
+                <div className="flex gap-2 items-center justify-between w-full md:w-auto">
+                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-1 hover:bg-gray-100 rounded">
+                        <ChevronLeft />
+                    </button>
+                    <h3 className="font-bold text-lg w-40 text-center">
+                        {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-1 hover:bg-gray-100 rounded">
+                        <ChevronRight />
+                    </button>
+                </div>
+                {/* Legend */}
+                <div className="flex flex-wrap justify-center gap-3 text-[10px] md:text-xs">
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-gray-200 rounded"></div>Draft</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-100 rounded"></div>Sent</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-100 rounded"></div>Accepted</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-100 rounded border border-green-200"></div>Adv. Paid</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 rounded"></div>Rejected</div>
+                </div>
+            </div>
+
+            {/* Scrollable Grid Container */}
+            <div className="flex-1 overflow-hidden flex flex-col relative">
+                <div className="overflow-x-auto h-full flex flex-col">
+                    <div className="min-w-[700px] flex-1 flex flex-col">
+                        {/* Days Header */}
+                        <div className="grid grid-cols-7 border-b bg-gray-50">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                <div key={d} className="py-2 text-center text-[10px] md:text-xs font-bold text-gray-500 uppercase">{d}</div>
+                            ))}
+                        </div>
+
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+                            {renderCalendarDays()}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+  };
+
   const Dashboard = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 h-full flex flex-col">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
         <div>
             <h2 className="text-2xl font-bold text-gray-800">Quotations</h2>
-            <p className="text-gray-500 text-sm">Manage your proposals and track status.</p>
+            <p className="text-gray-500 text-sm">Manage your proposals and track events.</p>
         </div>
-        <button onClick={handleCreateQuotation} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 shadow-sm transition-all">
-          <Plus size={18} /> <span>New Quotation</span>
-        </button>
+        <div className="flex flex-wrap gap-3 w-full md:w-auto">
+             <div className="bg-gray-100 p-1 rounded-lg flex items-center flex-1 md:flex-none justify-center">
+                <button onClick={() => setDashboardView('list')} className={`p-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${dashboardView === 'list' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <List size={16} /> List
+                </button>
+                <button onClick={() => setDashboardView('calendar')} className={`p-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${dashboardView === 'calendar' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <CalendarIcon size={16} /> Calendar
+                </button>
+             </div>
+            <button onClick={handleCreateQuotation} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-700 shadow-sm transition-all flex-1 md:flex-none">
+                <Plus size={18} /> <span className="whitespace-nowrap">New Quotation</span>
+            </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs font-semibold tracking-wider">
-                <tr>
-                <th className="p-4 border-b">ID</th>
-                <th className="p-4 border-b">Client</th>
-                <th className="p-4 border-b">Date</th>
-                <th className="p-4 border-b">Amount</th>
-                <th className="p-4 border-b">Status</th>
-                <th className="p-4 border-b text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
-                {quotations.map(q => {
-                    const statusColors: any = { Draft: 'bg-gray-100 text-gray-600', Sent: 'bg-blue-100 text-blue-600', Accepted: 'bg-green-100 text-green-600', Rejected: 'bg-red-100 text-red-600' };
-                    // Calculate quick total for dashboard view
-                    const qTotal = calculateTotals(q.data).grandTotal;
-                    
-                    return (
-                        <tr key={q.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="p-4 font-mono text-gray-500">{q.data.client.quoNumber}</td>
-                            <td className="p-4 font-medium text-gray-800">{q.data.client.name}</td>
-                            <td className="p-4 text-gray-500">{new Date(q.createdAt).toLocaleDateString()}</td>
-                            <td className="p-4 font-medium text-gray-800">
-                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(qTotal)}
-                            </td>
-                            <td className="p-4">
-                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${statusColors[q.data.client.status] || 'bg-gray-100'}`}>
-                                    {q.data.client.status}
-                                </span>
-                            </td>
-                            <td className="p-4 text-right space-x-2 flex justify-end">
-                                <button onClick={(e) => { e.stopPropagation(); setHistoryModalQuotationId(q.id); }} className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-full transition-colors" title="View History">
-                                    <Clock size={16} />
-                                </button>
-                                <button onClick={(e) => handleEditQuotation(q.id, e)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit">
-                                    <Edit2 size={16} />
-                                </button>
-                                <button onClick={(e) => handleDeleteQuotation(q.id, e)} className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete">
-                                    <Trash2 size={16} />
-                                </button>
-                            </td>
-                        </tr>
-                    );
-                })}
-                {quotations.length === 0 && (
+      {dashboardView === 'list' ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead className="bg-gray-50 text-gray-600 uppercase text-xs font-semibold tracking-wider">
                     <tr>
-                        <td colSpan={6} className="p-8 text-center text-gray-400">No quotations found. Create one to get started.</td>
+                    <th className="p-4 border-b">ID</th>
+                    <th className="p-4 border-b">Client</th>
+                    <th className="p-4 border-b">Date</th>
+                    <th className="p-4 border-b">Amount</th>
+                    <th className="p-4 border-b">Status</th>
+                    <th className="p-4 border-b text-right">Actions</th>
                     </tr>
-                )}
-            </tbody>
-            </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-sm">
+                    {quotations.map(q => {
+                        const statusColors: any = { Draft: 'bg-gray-100 text-gray-600', Sent: 'bg-blue-100 text-blue-600', Accepted: 'bg-green-100 text-green-600', Rejected: 'bg-red-100 text-red-600' };
+                        // Calculate quick total for dashboard view
+                        const qTotal = calculateTotals(q.data).grandTotal;
+                        
+                        return (
+                            <tr key={q.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="p-4 font-mono text-gray-500">{q.data.client.quoNumber}</td>
+                                <td className="p-4 font-medium text-gray-800">{q.data.client.name}</td>
+                                <td className="p-4 text-gray-500">{new Date(q.createdAt).toLocaleDateString()}</td>
+                                <td className="p-4 font-medium text-gray-800">
+                                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(qTotal)}
+                                </td>
+                                <td className="p-4">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${statusColors[q.data.client.status] || 'bg-gray-100'}`}>
+                                        {q.data.client.status}
+                                    </span>
+                                </td>
+                                <td className="p-4 text-right space-x-2 flex justify-end">
+                                    <button onClick={(e) => { e.stopPropagation(); setHistoryModalQuotationId(q.id); }} className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-full transition-colors" title="View History">
+                                        <Clock size={16} />
+                                    </button>
+                                    <button onClick={(e) => handleEditQuotation(q.id, e)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit">
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button onClick={(e) => handleDeleteQuotation(q.id, e)} className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </td>
+                            </tr>
+                        );
+                    })}
+                    {quotations.length === 0 && (
+                        <tr>
+                            <td colSpan={6} className="p-8 text-center text-gray-400">No quotations found. Create one to get started.</td>
+                        </tr>
+                    )}
+                </tbody>
+                </table>
+            </div>
+          </div>
+      ) : (
+          <CalendarView />
+      )}
     </div>
   );
 
@@ -401,7 +549,7 @@ const App: React.FC = () => {
                 </button>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="w-full text-left text-sm min-w-[500px]">
                     <thead className="bg-gray-50 text-xs uppercase font-bold text-gray-600">
                         <tr><th className="p-4">Name</th><th className="p-4">Company</th><th className="p-4">Phone</th><th className="p-4 text-right">Actions</th></tr>
                     </thead>
@@ -767,8 +915,10 @@ const App: React.FC = () => {
                             const newEvent: EventItem = {
                                 id: `ev-${Date.now()}`,
                                 name: tmpl.name,
+                                isDateDecided: false, // Default to false
                                 date: '',
                                 timeRange: '',
+                                isVenueDecided: false, // Default to false
                                 venue: '',
                                 duration: tmpl.defaultDuration,
                                 team: [...tmpl.defaultTeam], // copy
@@ -785,7 +935,7 @@ const App: React.FC = () => {
                     {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                  </select>
                  <button 
-                    onClick={() => setData(prev => ({ ...prev, events: [...prev.events, { id: `ev-${Date.now()}`, name: 'New Event', date: '', timeRange: '', venue: '', duration: '', team: [], notes: '', approxCost: 0 }] }))}
+                    onClick={() => setData(prev => ({ ...prev, events: [...prev.events, { id: `ev-${Date.now()}`, name: 'New Event', isDateDecided: false, date: '', timeRange: '', isVenueDecided: false, venue: '', duration: '', team: [], notes: '', approxCost: 0 }] }))}
                     className="bg-gray-800 text-white px-4 py-2 rounded text-sm font-medium"
                  >
                     + Custom
@@ -811,24 +961,49 @@ const App: React.FC = () => {
                                     const newEvents = [...data.events]; newEvents[idx].name = e.target.value; setData({...data, events: newEvents});
                                 }} onBlur={() => saveQuotation()} />
                             </div>
-                             <div>
-                                <label className="text-[10px] font-bold uppercase text-gray-400">Date</label>
-                                <input type="date" className="w-full text-sm border p-1 rounded" value={event.date} onChange={e => {
-                                    const newEvents = [...data.events]; newEvents[idx].date = e.target.value; setData({...data, events: newEvents});
-                                }} onBlur={() => saveQuotation()} />
+
+                            {/* Date Decided Checkbox */}
+                            <div className="col-span-2 flex items-center gap-2 mb-1 mt-1">
+                                <input type="checkbox" id={`date-decided-${event.id}`} checked={event.isDateDecided} onChange={e => {
+                                    const newEvents = [...data.events]; newEvents[idx].isDateDecided = e.target.checked; setData({...data, events: newEvents}); saveQuotation();
+                                }} />
+                                <label htmlFor={`date-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Date & Time Decided?</label>
                             </div>
-                             <div>
-                                <label className="text-[10px] font-bold uppercase text-gray-400">Time</label>
-                                <input className="w-full text-sm border p-1 rounded" value={event.timeRange} onChange={e => {
-                                    const newEvents = [...data.events]; newEvents[idx].timeRange = e.target.value; setData({...data, events: newEvents});
-                                }} onBlur={() => saveQuotation()} />
+
+                            {event.isDateDecided && (
+                                <>
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase text-gray-400">Date</label>
+                                        <input type="date" className="w-full text-sm border p-1 rounded" value={event.date} onChange={e => {
+                                            const newEvents = [...data.events]; newEvents[idx].date = e.target.value; setData({...data, events: newEvents});
+                                        }} onBlur={() => saveQuotation()} />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase text-gray-400">Time</label>
+                                        <input className="w-full text-sm border p-1 rounded" value={event.timeRange} onChange={e => {
+                                            const newEvents = [...data.events]; newEvents[idx].timeRange = e.target.value; setData({...data, events: newEvents});
+                                        }} onBlur={() => saveQuotation()} />
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Venue Decided Checkbox */}
+                            <div className="col-span-2 flex items-center gap-2 mb-1 mt-1">
+                                <input type="checkbox" id={`venue-decided-${event.id}`} checked={event.isVenueDecided} onChange={e => {
+                                    const newEvents = [...data.events]; newEvents[idx].isVenueDecided = e.target.checked; setData({...data, events: newEvents}); saveQuotation();
+                                }} />
+                                <label htmlFor={`venue-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Venue Decided?</label>
                             </div>
-                            <div className="col-span-2">
-                                <label className="text-[10px] font-bold uppercase text-gray-400">Venue</label>
-                                <input className="w-full text-sm border p-1 rounded" value={event.venue} onChange={e => {
-                                    const newEvents = [...data.events]; newEvents[idx].venue = e.target.value; setData({...data, events: newEvents});
-                                }} onBlur={() => saveQuotation()} />
-                            </div>
+
+                            {event.isVenueDecided && (
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-bold uppercase text-gray-400">Venue</label>
+                                    <input className="w-full text-sm border p-1 rounded" value={event.venue} onChange={e => {
+                                        const newEvents = [...data.events]; newEvents[idx].venue = e.target.value; setData({...data, events: newEvents});
+                                    }} onBlur={() => saveQuotation()} />
+                                </div>
+                            )}
+
                              <div>
                                 <label className="text-[10px] font-bold uppercase text-gray-400">Duration</label>
                                 <input className="w-full text-sm border p-1 rounded" value={event.duration} onChange={e => {
@@ -867,6 +1042,10 @@ const App: React.FC = () => {
         );
         
       case 3: // FINANCIALS
+        const totalMilestones = data.financials.paymentMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+        const remainingAllocation = totals.grandTotal - totalMilestones;
+        const isAllocationExact = remainingAllocation === 0;
+
         return (
           <div className="space-y-6 animate-fadeIn">
             {/* ADD ONS SECTION */}
@@ -882,19 +1061,21 @@ const App: React.FC = () => {
                 
                 <div className="space-y-2">
                     {data.addOns.map((addon, idx) => (
-                        <div key={addon.id} className="flex gap-2 items-start">
-                            <input className="flex-1 p-2 text-sm border rounded" placeholder="Service Name (e.g. LED Wall)" value={addon.service} onChange={e => {
+                        <div key={addon.id} className="flex flex-col md:flex-row gap-2 items-start">
+                            <input className="flex-1 p-2 text-sm border rounded w-full" placeholder="Service Name (e.g. LED Wall)" value={addon.service} onChange={e => {
                                 const arr = [...data.addOns]; arr[idx].service = e.target.value; setData({...data, addOns: arr});
                             }} />
-                            <input className="flex-[2] p-2 text-sm border rounded" placeholder="Description" value={addon.description} onChange={e => {
+                            <input className="flex-[2] p-2 text-sm border rounded w-full" placeholder="Description" value={addon.description} onChange={e => {
                                 const arr = [...data.addOns]; arr[idx].description = e.target.value; setData({...data, addOns: arr});
                             }} />
-                            <input type="number" className="w-24 p-2 text-sm border rounded font-mono" placeholder="Price" value={addon.price} onChange={e => {
-                                const arr = [...data.addOns]; arr[idx].price = parseFloat(e.target.value) || 0; setData({...data, addOns: arr});
-                            }} />
-                            <button onClick={() => {
-                                setData(prev => ({...prev, addOns: prev.addOns.filter((_, i) => i !== idx)}));
-                            }} className="p-2 text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <input type="number" className="w-24 p-2 text-sm border rounded font-mono flex-1 md:flex-none" placeholder="Price" value={addon.price} onChange={e => {
+                                    const arr = [...data.addOns]; arr[idx].price = parseFloat(e.target.value) || 0; setData({...data, addOns: arr});
+                                }} />
+                                <button onClick={() => {
+                                    setData(prev => ({...prev, addOns: prev.addOns.filter((_, i) => i !== idx)}));
+                                }} className="p-2 text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -921,15 +1102,22 @@ const App: React.FC = () => {
                 {/* Total Preview */}
                 <div className="mt-4 pt-3 border-t border-yellow-200 text-sm flex flex-col gap-1 text-right">
                     <div className="text-gray-500">Add-ons Total: + {data.addOns.reduce((s,a) => s + (a.price||0), 0)}</div>
-                    <div className="font-bold text-gray-800">Grand Total (Estimated): {totals.grandTotal.toFixed(0)}</div>
+                    <div className="font-bold text-gray-800">Grand Total: {totals.grandTotal.toFixed(0)}</div>
                 </div>
             </div>
 
             <div className="bg-white border rounded-lg p-4">
                 <div className="flex justify-between items-center mb-4">
-                     <h3 className="text-sm font-bold uppercase text-gray-700">Payment Milestones</h3>
+                     <div>
+                        <h3 className="text-sm font-bold uppercase text-gray-700">Payment Milestones</h3>
+                        <div className={`text-xs mt-1 ${isAllocationExact ? 'text-green-600' : 'text-red-500'}`}>
+                            Milestones Total: {totalMilestones.toFixed(0)} / {totals.grandTotal.toFixed(0)} 
+                            {!isAllocationExact && ` (Diff: ${remainingAllocation.toFixed(0)})`}
+                        </div>
+                     </div>
                      <button onClick={() => {
-                        const newMs: PaymentMilestone = { id: `pm-${Date.now()}`, name: 'New Phase', type: 'percentage', value: 0, amount: 0, dueDate: '', isPaid: false };
+                        // Default to 0 amount
+                        const newMs: PaymentMilestone = { id: `pm-${Date.now()}`, name: 'New Phase', type: 'fixed', value: 0, amount: 0, dueDate: '', isPaid: false };
                         setData(prev => ({...prev, financials: {...prev.financials, paymentMilestones: [...prev.financials.paymentMilestones, newMs]}}));
                      }} className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">+ Add Phase</button>
                 </div>
@@ -951,47 +1139,24 @@ const App: React.FC = () => {
                                         setData({...data, financials: {...data.financials, paymentMilestones: arr}});
                                     }} onBlur={() => saveQuotation()} />
                                 </div>
-                                <div className="w-24">
-                                     <label className="text-[10px] uppercase font-bold text-gray-400">Type</label>
-                                     <select className="w-full text-sm border p-1 rounded" value={ms.type} onChange={e => {
-                                         const arr = [...data.financials.paymentMilestones]; arr[idx].type = e.target.value as any;
-                                         // Recalc logic handled by effect or manual trigger could be added here for immediate feedback
-                                         setData({...data, financials: {...data.financials, paymentMilestones: arr}});
-                                     }} onBlur={() => saveQuotation()}>
-                                        <option value="percentage">%</option>
-                                        <option value="fixed">Fixed</option>
-                                     </select>
-                                </div>
-                                <div className="w-24">
-                                     <label className="text-[10px] uppercase font-bold text-gray-400">Value</label>
-                                     <input type="number" className="w-full text-sm border p-1 rounded" value={ms.value} onChange={e => {
-                                         const val = parseFloat(e.target.value) || 0;
-                                         const arr = [...data.financials.paymentMilestones]; 
-                                         arr[idx].value = val;
-                                         // Immediate Calculation for UI responsiveness
-                                         if (arr[idx].type === 'percentage') {
-                                            arr[idx].amount = (totals.grandTotal * val) / 100;
-                                         } else {
-                                            arr[idx].amount = val;
-                                         }
-                                         setData({...data, financials: {...data.financials, paymentMilestones: arr}});
-                                     }} onBlur={() => saveQuotation()} />
-                                </div>
-                                <div className="w-32">
+                                <div className="w-full md:w-40">
                                      <label className="text-[10px] uppercase font-bold text-gray-400">Amount (₹)</label>
-                                     <input disabled className="w-full text-sm border p-1 rounded bg-gray-100 text-gray-500" value={ms.amount.toFixed(0)} />
-                                </div>
-                                <div className="w-32">
-                                     <label className="text-[10px] uppercase font-bold text-gray-400">Due Date</label>
-                                     <input type="date" className="w-full text-sm border p-1 rounded" value={ms.dueDate} onChange={e => {
-                                         const arr = [...data.financials.paymentMilestones]; arr[idx].dueDate = e.target.value;
-                                         setData({...data, financials: {...data.financials, paymentMilestones: arr}});
-                                     }} onBlur={() => saveQuotation()} />
+                                     <input type="number" className="w-full text-sm border p-1 rounded font-mono" 
+                                        value={ms.amount} 
+                                        onChange={e => {
+                                            const val = parseFloat(e.target.value) || 0;
+                                            const arr = [...data.financials.paymentMilestones]; 
+                                            arr[idx].amount = val;
+                                            arr[idx].value = val; // Sync value just in case
+                                            setData({...data, financials: {...data.financials, paymentMilestones: arr}});
+                                        }} 
+                                        onBlur={() => saveQuotation()} 
+                                     />
                                 </div>
                              </div>
 
                              {/* Payment Status Toggle */}
-                             <div className="mt-3 pt-2 border-t border-gray-200 flex items-center gap-3">
+                             <div className="mt-3 pt-2 border-t border-gray-200 flex flex-wrap items-center gap-3">
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                     <input type="checkbox" checked={ms.isPaid} onChange={e => {
                                         const arr = [...data.financials.paymentMilestones]; arr[idx].isPaid = e.target.checked;
@@ -1002,7 +1167,7 @@ const App: React.FC = () => {
                                 </label>
                                 {ms.isPaid && (
                                     <>
-                                        <select className="text-xs border p-1 rounded" value={ms.method || ''} onChange={e => {
+                                        <select className="text-xs border p-1 rounded flex-1 md:flex-none" value={ms.method || ''} onChange={e => {
                                             const arr = [...data.financials.paymentMilestones]; arr[idx].method = e.target.value as any; setData({...data, financials: {...data.financials, paymentMilestones: arr}}); saveQuotation();
                                         }}>
                                             <option value="">Method?</option>
@@ -1010,17 +1175,23 @@ const App: React.FC = () => {
                                             <option value="UPI">UPI</option>
                                             <option value="Bank Transfer">Bank Transfer</option>
                                         </select>
-                                        <input type="date" className="text-xs border p-1 rounded" value={ms.paidAt || ''} onChange={e => {
+                                        <input type="date" className="text-xs border p-1 rounded flex-1 md:flex-none" value={ms.paidAt || ''} onChange={e => {
                                              const arr = [...data.financials.paymentMilestones]; arr[idx].paidAt = e.target.value; setData({...data, financials: {...data.financials, paymentMilestones: arr}}); saveQuotation();
                                         }} />
                                         <label className="text-xs text-blue-600 cursor-pointer flex items-center gap-1 hover:underline">
                                             <Upload size={12}/> {ms.proofFile ? 'Change Proof' : 'Upload Proof'}
                                             <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
-                                                if (e.target.files?.[0]) {
-                                                    const base64 = await fileToBase64(e.target.files[0]);
-                                                    const arr = [...data.financials.paymentMilestones]; arr[idx].proofFile = base64; 
-                                                    setData({...data, financials: {...data.financials, paymentMilestones: arr}});
-                                                    saveQuotation();
+                                                if (e.target.files && e.target.files[0]) {
+                                                    const file = e.target.files[0];
+                                                    try {
+                                                        const base64 = await fileToBase64(file);
+                                                        const arr = [...data.financials.paymentMilestones]; 
+                                                        arr[idx].proofFile = base64; 
+                                                        setData({...data, financials: {...data.financials, paymentMilestones: arr}}); 
+                                                        saveQuotation();
+                                                    } catch (err) {
+                                                        console.error("File upload failed", err);
+                                                    }
                                                 }
                                             }} />
                                         </label>
@@ -1033,116 +1204,171 @@ const App: React.FC = () => {
             </div>
           </div>
         );
-
+      
       case 4: // META
         return (
-            <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
+             <div className="grid grid-cols-1 gap-4">
                 <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Deliverables (One per line)</label>
-                    <textarea rows={6} className="w-full p-2 border rounded text-sm font-mono" value={data.meta.deliverables} onChange={e => setData({...data, meta: {...data.meta, deliverables: e.target.value}})} onBlur={() => saveQuotation()} />
+                    <div className="flex justify-between mb-1">
+                        <label className="text-xs font-bold uppercase text-gray-500">Deliverables</label>
+                    </div>
+                    <textarea className="w-full p-2 border rounded text-sm h-24" value={data.meta.deliverables} onChange={e => setData({...data, meta: {...data.meta, deliverables: e.target.value}})} onBlur={() => saveQuotation()} />
                 </div>
                 <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Terms & Conditions</label>
-                    <textarea rows={6} className="w-full p-2 border rounded text-sm font-mono" value={data.meta.terms} onChange={e => setData({...data, meta: {...data.meta, terms: e.target.value}})} onBlur={() => saveQuotation()} />
+                     <div className="flex justify-between mb-1">
+                        <label className="text-xs font-bold uppercase text-gray-500">Delivery Timeline</label>
+                    </div>
+                    <textarea className="w-full p-2 border rounded text-sm h-20" value={data.meta.deliveryTimeline} onChange={e => setData({...data, meta: {...data.meta, deliveryTimeline: e.target.value}})} onBlur={() => saveQuotation()} />
                 </div>
-            </div>
-        );
-
-      case 5: // PREVIEW
-        return (
-            <div className="space-y-4">
-                <div className="flex justify-end print:hidden">
-                    <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2">
-                        <Download className="rotate-0" size={18} /> Download PDF
-                    </button>
+                <div>
+                    <label className="text-xs font-bold uppercase text-gray-500 mb-1">Bank Details</label>
+                    <textarea className="w-full p-2 border rounded text-sm h-24 font-mono" value={data.meta.bankDetails} onChange={e => setData({...data, meta: {...data.meta, bankDetails: e.target.value}})} onBlur={() => saveQuotation()} />
                 </div>
-                <PreviewSection data={data} totals={totals} skills={skills} />
-            </div>
+                <div>
+                     <div className="flex justify-between mb-1">
+                        <label className="text-xs font-bold uppercase text-gray-500">Terms & Conditions</label>
+                    </div>
+                    <textarea className="w-full p-2 border rounded text-sm h-32" value={data.meta.terms} onChange={e => setData({...data, meta: {...data.meta, terms: e.target.value}})} onBlur={() => saveQuotation()} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-xs font-bold uppercase text-gray-500 mb-1">Client Signatory Name</label>
+                        <input className="w-full p-2 border rounded text-sm" value={data.meta.clientSignName} onChange={e => setData({...data, meta: {...data.meta, clientSignName: e.target.value}})} onBlur={() => saveQuotation()} />
+                    </div>
+                     <div>
+                        <label className="text-xs font-bold uppercase text-gray-500 mb-1">Studio Signatory Name</label>
+                        <input className="w-full p-2 border rounded text-sm" value={data.meta.studioSignName} onChange={e => setData({...data, meta: {...data.meta, studioSignName: e.target.value}})} onBlur={() => saveQuotation()} />
+                    </div>
+                </div>
+             </div>
+          </div>
         );
-
+      
       default:
-        return null;
+        return <div>Unknown Step</div>;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden print:h-auto print:overflow-visible">
-      {renderHistoryModal()}
-      
-      {/* SIDEBAR */}
-      <Sidebar />
+        <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
+            {/* Sidebar */}
+            <Sidebar />
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:h-auto print:overflow-visible">
-        {/* Top Mobile Bar */}
-        <div className="bg-white p-4 border-b flex justify-between items-center md:hidden print:hidden">
-            <h1 className="font-bold">Mera Studio</h1>
-            <button onClick={() => setSidebarOpen(true)}><Menu /></button>
-        </div>
-
-        <div className="flex-1 overflow-auto p-4 md:p-8 print:h-auto print:overflow-visible print:p-0">
-            {view === 'dashboard' && <Dashboard />}
-            {view === 'clients' && <ClientManager />}
-            {view === 'skills' && <SkillManager />}
-            {view === 'templates' && <TemplateManager />}
-            
-            {view === 'editor' && (
-                <div className="max-w-4xl mx-auto flex flex-col h-full print:h-auto print:block">
-                    {/* Editor Header */}
-                    <div className="flex justify-between items-center mb-6 print:hidden">
-                        <button onClick={() => { saveQuotation(); setView('dashboard'); setActiveQuotationId(null); }} className="text-gray-500 hover:text-gray-800 flex items-center gap-1">
-                            <ChevronLeft size={16} /> Back to Dashboard
-                        </button>
-                        <div className="flex gap-2">
-                             <span className="text-xs text-gray-400 self-center">Auto-saving...</span>
-                             <button onClick={() => window.print()} className="bg-gray-800 text-white px-4 py-2 rounded text-sm flex items-center gap-2"><CheckCircle size={16}/> Download / Print PDF</button>
-                        </div>
-                    </div>
-
-                    {/* Stepper */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 print:border-none print:shadow-none print:h-auto">
-                        <div className="flex border-b overflow-x-auto no-scrollbar print:hidden">
-                            {[
-                                {id:1, label:'Client'}, {id:2, label:'Events'}, {id:3, label:'Financials'}, {id:4, label:'Terms'}, {id:5, label:'Preview'}
-                            ].map(step => (
-                                <button 
-                                    key={step.id} 
-                                    onClick={() => setActiveStep(step.id)}
-                                    className={`flex-1 min-w-[100px] py-3 text-sm font-medium border-b-2 transition-colors ${activeStep === step.id ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    {step.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="p-6 overflow-y-auto flex-1 bg-white print:p-0 print:overflow-visible print:h-auto">
-                            {renderStepContent()}
-                        </div>
-                        
-                        {/* Footer Nav */}
-                        <div className="p-4 bg-gray-50 border-t flex justify-between print:hidden">
-                             <button 
-                                disabled={activeStep === 1}
-                                onClick={() => setActiveStep(p => p - 1)}
-                                className="px-4 py-2 text-gray-600 disabled:opacity-50"
-                             >
-                                Previous
-                             </button>
-                             <button 
-                                disabled={activeStep === 5}
-                                onClick={() => setActiveStep(p => p + 1)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                             >
-                                Next Step
-                             </button>
-                        </div>
-                    </div>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                {/* Mobile Header */}
+                <div className="md:hidden bg-white border-b p-4 flex justify-between items-center z-10">
+                    <h1 className="font-bold text-gray-800">Mera Studio</h1>
+                    <button onClick={() => setSidebarOpen(true)} className="text-gray-600"><Menu size={24} /></button>
                 </div>
-            )}
+
+                <div className="flex-1 overflow-auto p-4 md:p-6 relative">
+                    {view === 'dashboard' && <Dashboard />}
+                    {view === 'clients' && <ClientManager />}
+                    {view === 'skills' && <SkillManager />}
+                    {view === 'templates' && <TemplateManager />}
+                    
+                    {view === 'editor' && (
+                        <div className="h-full flex flex-col">
+                            {/* Editor Header */}
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 flex-shrink-0 gap-3">
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => { saveQuotation(); setView('dashboard'); }} className="p-2 hover:bg-white rounded-full transition-colors"><ChevronLeft /></button>
+                                    <div>
+                                        <h2 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                            {data.client.name || 'New Quotation'}
+                                            <span className="text-xs font-normal text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">{data.client.quoNumber}</span>
+                                        </h2>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 self-end md:self-auto">
+                                    <button onClick={() => window.print()} className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-900 shadow-sm print:hidden">
+                                        <Download size={16} /> <span className="hidden md:inline">Print / PDF</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Mobile Tabs */}
+                            <div className="lg:hidden flex mb-4 bg-gray-200 p-1 rounded-lg">
+                                <button 
+                                    onClick={() => setMobileTab('form')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${mobileTab === 'form' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}
+                                >
+                                    <PenTool size={14} /> Edit
+                                </button>
+                                <button 
+                                    onClick={() => setMobileTab('preview')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${mobileTab === 'preview' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}
+                                >
+                                    <Eye size={14} /> Preview
+                                </button>
+                            </div>
+
+                            <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+                                {/* Left Panel: Form */}
+                                <div className={`w-full lg:w-[45%] flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex-shrink-0 lg:flex-shrink ${mobileTab === 'preview' ? 'hidden lg:flex' : 'flex'}`}>
+                                    {/* Steps Nav */}
+                                    <div className="flex border-b bg-gray-50 overflow-x-auto no-scrollbar">
+                                        {['Client Details', 'Events & Team', 'Financials', 'Terms & Deliverables'].map((step, idx) => {
+                                            const stepNum = idx + 1;
+                                            const isActive = activeStep === stepNum;
+                                            return (
+                                                <button 
+                                                    key={stepNum} 
+                                                    onClick={() => setActiveStep(stepNum)}
+                                                    className={`flex-1 p-3 text-xs font-bold uppercase tracking-wide whitespace-nowrap border-b-2 transition-colors ${isActive ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                                                >
+                                                    {stepNum}. {step}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                    
+                                    {/* Scrollable Form Area */}
+                                    <div className="flex-1 overflow-y-auto p-6">
+                                        {renderStepContent()}
+                                    </div>
+                                    
+                                    {/* Form Footer Navigation */}
+                                    <div className="p-4 border-t bg-gray-50 flex justify-between">
+                                        <button 
+                                            disabled={activeStep === 1} 
+                                            onClick={() => setActiveStep(prev => Math.max(1, prev - 1))}
+                                            className="px-4 py-2 rounded bg-white border hover:bg-gray-100 disabled:opacity-50 text-sm"
+                                        >
+                                            Back
+                                        </button>
+                                        <button 
+                                            disabled={activeStep === 4} 
+                                            onClick={() => setActiveStep(prev => Math.min(4, prev + 1))}
+                                            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 text-sm"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Right Panel: Live Preview */}
+                                <div className={`flex-1 bg-gray-200 rounded-xl overflow-y-auto border border-gray-300 shadow-inner p-4 lg:p-8 ${mobileTab === 'form' ? 'hidden lg:block' : 'block'}`}>
+                                    <div className="transform lg:scale-[0.85] origin-top overflow-x-auto">
+                                        <PreviewSection data={data} totals={totals} skills={skills} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Print Overlay - Renders only when printing */}
+            <div className="hidden print:block fixed inset-0 bg-white z-[100]">
+                 <PreviewSection data={data} totals={totals} skills={skills} />
+            </div>
+
+            {renderHistoryModal()}
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default App;
