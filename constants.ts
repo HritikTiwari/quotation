@@ -82,7 +82,7 @@ const BASE_QUOTATION: QuotationData = {
     date: today.toISOString().split('T')[0],
     validTill: addDays(14),
     quoNumber: '',
-    status: 'Draft'
+    status: 'On Hold' // Default status
   },
   events: [],
   financials: {
@@ -98,11 +98,7 @@ const BASE_QUOTATION: QuotationData = {
     deliverables: 'Standard Deliverables',
     deliveryTimeline: '30 Days',
     bankDetails: 'Bank info...',
-    paymentTerms: {
-        advancePercent: 25,
-        beforeEventPercent: 50,
-        onDeliveryPercent: 25
-    },
+    paymentTerms: "25% Advance Payment (Booking Amount)\n50% Before Event Day\n25% On Final Delivery",
     terms: 'Standard Terms',
     clientSignName: '',
     studioSignName: 'Mera Studio'
@@ -132,7 +128,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
                 date: addDays(2),
                 validTill: addDays(10),
                 quoNumber: 'QUO-2025-001',
-                status: 'Accepted'
+                status: 'Confirmed'
             },
             events: [
                 { 
@@ -191,11 +187,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
                 deliverables: "1. 300+ Edited Candid Photographs\n2. 3-5 Minute Cinematic Teaser\n3. 25-30 Minute Wedding Highlight Film\n4. Traditional Full Video (2-3 Hours)\n5. One Premium Leather Album (40 Sheets)",
                 deliveryTimeline: "Photos: 15 Days after event\nTeaser: 20 Days after event\nFull Films & Album: 45-60 Days after event selection",
                 bankDetails: "Mera Studio & Films\nAccount No: 1234567890\nIFSC: HDFC0001234\nBranch: Varanasi Main",
-                paymentTerms: {
-                    advancePercent: 25,
-                    beforeEventPercent: 50,
-                    onDeliveryPercent: 25
-                },
+                paymentTerms: "25% Advance Payment (Booking Amount)\n50% Before Event Day\n25% On Final Delivery",
                 terms: "1. 50% advance payment is mandatory to block dates.\n2. Travel and stay for the team to be provided by the client.\n3. Raw footage will be provided on a hard drive supplied by the client.\n4. Copyrights of the images/videos remain with Mera Studio.",
                 clientSignName: "Rahul Sharma",
                 studioSignName: "Mera Studio Admin"
@@ -203,7 +195,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         },
         history: [
             { id: 'h1', timestamp: new Date().toISOString(), user: 'Admin', action: 'Quotation Created' },
-            { id: 'h2', timestamp: new Date().toISOString(), user: 'Admin', action: 'Status changed to Accepted' }
+            { id: 'h2', timestamp: new Date().toISOString(), user: 'Admin', action: 'Status changed to Confirmed' }
         ]
     },
     {
@@ -212,7 +204,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         updatedAt: new Date().toISOString(),
         data: {
             ...BASE_QUOTATION,
-            client: { ...BASE_QUOTATION.client, name: 'Amit & Neha', quoNumber: 'QUO-2025-002', status: 'Sent' },
+            client: { ...BASE_QUOTATION.client, name: 'Amit & Neha', quoNumber: 'QUO-2025-002', status: 'On Hold' },
             events: [
                 { id: 'e3', name: 'Sangeet', isDateDecided: true, date: addDays(5), timeRange: '5 PM', isVenueDecided: true, venue: 'City Club', duration: '5h', team: [], notes: '', approxCost: 40000 }
             ],
@@ -226,7 +218,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         updatedAt: new Date().toISOString(),
         data: {
             ...BASE_QUOTATION,
-            client: { ...BASE_QUOTATION.client, name: 'Vikas & Simran', quoNumber: 'QUO-2025-003', status: 'Draft' },
+            client: { ...BASE_QUOTATION.client, name: 'Vikas & Simran', quoNumber: 'QUO-2025-003', status: 'On Hold' },
             events: [
                 { id: 'e4', name: 'Pre-Wedding', isDateDecided: true, date: addDays(10), timeRange: '6 AM', isVenueDecided: true, venue: 'Ghats', duration: '4h', team: [], notes: '', approxCost: 15000 }
             ],
@@ -240,7 +232,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         updatedAt: new Date().toISOString(),
         data: {
             ...BASE_QUOTATION,
-            client: { ...BASE_QUOTATION.client, name: 'Corporate Event', quoNumber: 'QUO-2025-004', status: 'Rejected' },
+            client: { ...BASE_QUOTATION.client, name: 'Corporate Event', quoNumber: 'QUO-2025-004', status: 'On Hold' },
             events: [
                 { id: 'e5', name: 'Conference', isDateDecided: true, date: addDays(-2), timeRange: '9 AM', isVenueDecided: true, venue: 'Convention Center', duration: '8h', team: [], notes: '', approxCost: 20000 }
             ],
@@ -254,7 +246,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         updatedAt: new Date().toISOString(),
         data: {
             ...BASE_QUOTATION,
-            client: { ...BASE_QUOTATION.client, name: 'Suresh & Family', quoNumber: 'QUO-2025-005', status: 'Accepted' },
+            client: { ...BASE_QUOTATION.client, name: 'Suresh & Family', quoNumber: 'QUO-2025-005', status: 'On Hold' },
             events: [
                 { id: 'e6', name: 'Engagement', isDateDecided: true, date: addDays(15), timeRange: '6 PM', isVenueDecided: true, venue: 'Home', duration: '4h', team: [], notes: '', approxCost: 25000 }
             ],

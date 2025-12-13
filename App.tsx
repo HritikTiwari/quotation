@@ -372,15 +372,13 @@ const App: React.FC = () => {
                     <div className="mt-1 space-y-1 overflow-y-auto max-h-[60px] md:max-h-[80px] no-scrollbar">
                         {dayEvents.map((ev, idx) => {
                             // Color Logic
-                            let bgClass = "bg-gray-200 text-gray-800 border-gray-300"; // Draft default
-                            if (ev.status === 'Rejected') {
-                                bgClass = "bg-red-100 text-red-800 border-red-200";
-                            } else if (ev.isPaid) {
-                                bgClass = "bg-green-100 text-green-800 border-green-200 ring-1 ring-green-300"; // Advance Paid
-                            } else if (ev.status === 'Accepted') {
+                            let bgClass = "bg-gray-200 text-gray-800 border-gray-300"; // Default
+                            if (ev.isPaid) {
+                                bgClass = "bg-green-100 text-green-800 border-green-200 ring-1 ring-green-300"; // Advance Paid overrides
+                            } else if (ev.status === 'Confirmed') {
+                                bgClass = "bg-green-100 text-green-800 border-green-200";
+                            } else if (ev.status === 'On Hold') {
                                 bgClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
-                            } else if (ev.status === 'Sent') {
-                                bgClass = "bg-blue-100 text-blue-800 border-blue-200";
                             }
 
                             return (
@@ -419,11 +417,9 @@ const App: React.FC = () => {
                 </div>
                 {/* Legend */}
                 <div className="flex flex-wrap justify-center gap-3 text-[10px] md:text-xs">
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-gray-200 rounded"></div>Draft</div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-100 rounded"></div>Sent</div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-100 rounded"></div>Accepted</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-100 rounded"></div>Confirmed</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-100 rounded"></div>On Hold</div>
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-100 rounded border border-green-200"></div>Adv. Paid</div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 rounded"></div>Rejected</div>
                 </div>
             </div>
 
@@ -487,7 +483,10 @@ const App: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
                     {quotations.map(q => {
-                        const statusColors: any = { Draft: 'bg-gray-100 text-gray-600', Sent: 'bg-blue-100 text-blue-600', Accepted: 'bg-green-100 text-green-600', Rejected: 'bg-red-100 text-red-600' };
+                        const statusColors: any = { 
+                            Confirmed: 'bg-green-100 text-green-600', 
+                            'On Hold': 'bg-yellow-100 text-yellow-800'
+                        };
                         // Calculate quick total for dashboard view
                         const qTotal = calculateTotals(q.data).grandTotal;
                         
@@ -904,10 +903,8 @@ const App: React.FC = () => {
                     onBlur={() => saveQuotation()} 
                     className="w-full p-2 border rounded text-sm bg-white"
                   >
-                    <option value="Draft">Draft</option>
-                    <option value="Sent">Sent</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Rejected">Rejected</option>
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="On Hold">On Hold</option>
                   </select>
                </div>
                <div>
@@ -1159,32 +1156,12 @@ const App: React.FC = () => {
                     <textarea className="w-full p-2 border rounded text-sm h-24 font-mono" value={data.meta.bankDetails} onChange={e => setData({...data, meta: {...data.meta, bankDetails: e.target.value}})} onBlur={() => saveQuotation()} />
                 </div>
                 
-                {/* Payment Terms Section */}
-                <div className="bg-green-50 p-4 rounded border border-green-100">
-                    <label className="text-xs font-bold uppercase text-green-800 mb-3 block">Payment Terms (%)</label>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div>
-                             <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Advance</label>
-                             <div className="relative">
-                                <input type="number" className="w-full p-2 border rounded text-sm font-mono pr-6" value={data.meta.paymentTerms?.advancePercent || ''} onChange={e => setData({...data, meta: {...data.meta, paymentTerms: { ...data.meta.paymentTerms, advancePercent: parseFloat(e.target.value) || 0 }}})} onBlur={() => saveQuotation()} />
-                                <span className="absolute right-2 top-2 text-gray-400 text-xs">%</span>
-                             </div>
-                        </div>
-                        <div>
-                             <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Before Event</label>
-                             <div className="relative">
-                                <input type="number" className="w-full p-2 border rounded text-sm font-mono pr-6" value={data.meta.paymentTerms?.beforeEventPercent || ''} onChange={e => setData({...data, meta: {...data.meta, paymentTerms: { ...data.meta.paymentTerms, beforeEventPercent: parseFloat(e.target.value) || 0 }}})} onBlur={() => saveQuotation()} />
-                                <span className="absolute right-2 top-2 text-gray-400 text-xs">%</span>
-                             </div>
-                        </div>
-                        <div>
-                             <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Final Delivery</label>
-                             <div className="relative">
-                                <input type="number" className="w-full p-2 border rounded text-sm font-mono pr-6" value={data.meta.paymentTerms?.onDeliveryPercent || ''} onChange={e => setData({...data, meta: {...data.meta, paymentTerms: { ...data.meta.paymentTerms, onDeliveryPercent: parseFloat(e.target.value) || 0 }}})} onBlur={() => saveQuotation()} />
-                                <span className="absolute right-2 top-2 text-gray-400 text-xs">%</span>
-                             </div>
-                        </div>
+                {/* Payment Terms Section - Changed to single textarea */}
+                <div>
+                    <div className="flex justify-between mb-1">
+                        <label className="text-xs font-bold uppercase text-gray-500">Payment Terms</label>
                     </div>
+                    <textarea className="w-full p-2 border rounded text-sm h-24" value={data.meta.paymentTerms} onChange={e => setData({...data, meta: {...data.meta, paymentTerms: e.target.value}})} onBlur={() => saveQuotation()} />
                 </div>
 
                 <div>

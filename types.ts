@@ -12,7 +12,7 @@ export interface ClientDetails {
     date: string;
     validTill: string;
     quoNumber: string;
-    status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected';
+    status: 'Confirmed' | 'On Hold';
   }
   
   export interface ClientMaster {
@@ -90,17 +90,11 @@ export interface ClientDetails {
     price: number;
   }
   
-  export interface PaymentTerms {
-    advancePercent: number;
-    beforeEventPercent: number;
-    onDeliveryPercent: number;
-  }
-
   export interface TermsAndDeliverables {
     deliverables: string;
     deliveryTimeline: string;
     bankDetails: string;
-    paymentTerms: PaymentTerms;
+    paymentTerms: string; // Changed to string for single textarea
     terms: string;
     clientSignName: string;
     studioSignName: string;
