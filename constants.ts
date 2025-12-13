@@ -98,6 +98,11 @@ const BASE_QUOTATION: QuotationData = {
     deliverables: 'Standard Deliverables',
     deliveryTimeline: '30 Days',
     bankDetails: 'Bank info...',
+    paymentTerms: {
+        advancePercent: 25,
+        beforeEventPercent: 50,
+        onDeliveryPercent: 25
+    },
     terms: 'Standard Terms',
     clientSignName: '',
     studioSignName: 'Mera Studio'
@@ -186,6 +191,11 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
                 deliverables: "1. 300+ Edited Candid Photographs\n2. 3-5 Minute Cinematic Teaser\n3. 25-30 Minute Wedding Highlight Film\n4. Traditional Full Video (2-3 Hours)\n5. One Premium Leather Album (40 Sheets)",
                 deliveryTimeline: "Photos: 15 Days after event\nTeaser: 20 Days after event\nFull Films & Album: 45-60 Days after event selection",
                 bankDetails: "Mera Studio & Films\nAccount No: 1234567890\nIFSC: HDFC0001234\nBranch: Varanasi Main",
+                paymentTerms: {
+                    advancePercent: 25,
+                    beforeEventPercent: 50,
+                    onDeliveryPercent: 25
+                },
                 terms: "1. 50% advance payment is mandatory to block dates.\n2. Travel and stay for the team to be provided by the client.\n3. Raw footage will be provided on a hard drive supplied by the client.\n4. Copyrights of the images/videos remain with Mera Studio.",
                 clientSignName: "Rahul Sharma",
                 studioSignName: "Mera Studio Admin"

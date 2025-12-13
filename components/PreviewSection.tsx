@@ -172,6 +172,18 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
         <div className="space-y-6">
             <div className="flex flex-row gap-8">
                 <div className="flex-1 space-y-4 text-sm">
+                    {/* Payment Terms Section in Preview */}
+                    {data.meta.paymentTerms && (
+                        <div>
+                             <p className="font-bold mb-1">Payment Schedule</p>
+                             <ul className="list-disc ml-5 text-gray-700 space-y-1">
+                                {data.meta.paymentTerms.advancePercent > 0 && <li><b>{data.meta.paymentTerms.advancePercent}%</b> Advance Payment (Booking Amount)</li>}
+                                {data.meta.paymentTerms.beforeEventPercent > 0 && <li><b>{data.meta.paymentTerms.beforeEventPercent}%</b> Before Event Day</li>}
+                                {data.meta.paymentTerms.onDeliveryPercent > 0 && <li><b>{data.meta.paymentTerms.onDeliveryPercent}%</b> On Final Delivery</li>}
+                             </ul>
+                        </div>
+                    )}
+                    
                     <div>
                         <p className="font-bold mb-1">Delivery Timeline</p>
                         <div className="text-gray-700 ml-4">{renderList(data.meta.deliveryTimeline)}</div>

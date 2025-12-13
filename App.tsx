@@ -987,7 +987,7 @@ const App: React.FC = () => {
                                 <input type="checkbox" id={`date-decided-${event.id}`} checked={event.isDateDecided} onChange={e => {
                                     const newEvents = [...data.events]; newEvents[idx].isDateDecided = e.target.checked; setData({...data, events: newEvents}); saveQuotation();
                                 }} />
-                                <label htmlFor={`date-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Date & Time Decided?</label>
+                                <label htmlFor={`date-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Add Date & Time</label>
                             </div>
 
                             {event.isDateDecided ? (
@@ -1016,7 +1016,7 @@ const App: React.FC = () => {
                                 <input type="checkbox" id={`venue-decided-${event.id}`} checked={event.isVenueDecided} onChange={e => {
                                     const newEvents = [...data.events]; newEvents[idx].isVenueDecided = e.target.checked; setData({...data, events: newEvents}); saveQuotation();
                                 }} />
-                                <label htmlFor={`venue-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Venue Decided?</label>
+                                <label htmlFor={`venue-decided-${event.id}`} className="text-xs font-bold uppercase text-gray-500 cursor-pointer">Add Venue</label>
                             </div>
 
                             {event.isVenueDecided ? (
@@ -1158,6 +1158,35 @@ const App: React.FC = () => {
                     <label className="text-xs font-bold uppercase text-gray-500 mb-1">Bank Details</label>
                     <textarea className="w-full p-2 border rounded text-sm h-24 font-mono" value={data.meta.bankDetails} onChange={e => setData({...data, meta: {...data.meta, bankDetails: e.target.value}})} onBlur={() => saveQuotation()} />
                 </div>
+                
+                {/* Payment Terms Section */}
+                <div className="bg-green-50 p-4 rounded border border-green-100">
+                    <label className="text-xs font-bold uppercase text-green-800 mb-3 block">Payment Terms (%)</label>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                             <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Advance</label>
+                             <div className="relative">
+                                <input type="number" className="w-full p-2 border rounded text-sm font-mono pr-6" value={data.meta.paymentTerms?.advancePercent || ''} onChange={e => setData({...data, meta: {...data.meta, paymentTerms: { ...data.meta.paymentTerms, advancePercent: parseFloat(e.target.value) || 0 }}})} onBlur={() => saveQuotation()} />
+                                <span className="absolute right-2 top-2 text-gray-400 text-xs">%</span>
+                             </div>
+                        </div>
+                        <div>
+                             <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Before Event</label>
+                             <div className="relative">
+                                <input type="number" className="w-full p-2 border rounded text-sm font-mono pr-6" value={data.meta.paymentTerms?.beforeEventPercent || ''} onChange={e => setData({...data, meta: {...data.meta, paymentTerms: { ...data.meta.paymentTerms, beforeEventPercent: parseFloat(e.target.value) || 0 }}})} onBlur={() => saveQuotation()} />
+                                <span className="absolute right-2 top-2 text-gray-400 text-xs">%</span>
+                             </div>
+                        </div>
+                        <div>
+                             <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Final Delivery</label>
+                             <div className="relative">
+                                <input type="number" className="w-full p-2 border rounded text-sm font-mono pr-6" value={data.meta.paymentTerms?.onDeliveryPercent || ''} onChange={e => setData({...data, meta: {...data.meta, paymentTerms: { ...data.meta.paymentTerms, onDeliveryPercent: parseFloat(e.target.value) || 0 }}})} onBlur={() => saveQuotation()} />
+                                <span className="absolute right-2 top-2 text-gray-400 text-xs">%</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                      <div className="flex justify-between mb-1">
                         <label className="text-xs font-bold uppercase text-gray-500">Terms & Conditions</label>

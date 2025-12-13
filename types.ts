@@ -90,10 +90,17 @@ export interface ClientDetails {
     price: number;
   }
   
+  export interface PaymentTerms {
+    advancePercent: number;
+    beforeEventPercent: number;
+    onDeliveryPercent: number;
+  }
+
   export interface TermsAndDeliverables {
     deliverables: string;
     deliveryTimeline: string;
     bankDetails: string;
+    paymentTerms: PaymentTerms;
     terms: string;
     clientSignName: string;
     studioSignName: string;
