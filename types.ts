@@ -12,7 +12,7 @@ export interface ClientDetails {
     date: string;
     validTill: string;
     quoNumber: string;
-    status: 'Confirmed' | 'On Hold';
+    status: 'Draft' | 'Sent' | 'Confirmed' | 'On Hold';
   }
   
   export interface ClientMaster {

@@ -82,7 +82,7 @@ const BASE_QUOTATION: QuotationData = {
     date: today.toISOString().split('T')[0],
     validTill: addDays(14),
     quoNumber: '',
-    status: 'On Hold' // Default status
+    status: 'Draft' // Default status
   },
   events: [],
   financials: {
@@ -204,7 +204,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         updatedAt: new Date().toISOString(),
         data: {
             ...BASE_QUOTATION,
-            client: { ...BASE_QUOTATION.client, name: 'Amit & Neha', quoNumber: 'QUO-2025-002', status: 'On Hold' },
+            client: { ...BASE_QUOTATION.client, name: 'Amit & Neha', quoNumber: 'QUO-2025-002', status: 'Sent' },
             events: [
                 { id: 'e3', name: 'Sangeet', isDateDecided: true, date: addDays(5), timeRange: '5 PM', isVenueDecided: true, venue: 'City Club', duration: '5h', team: [], notes: '', approxCost: 40000 }
             ],
@@ -218,7 +218,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         updatedAt: new Date().toISOString(),
         data: {
             ...BASE_QUOTATION,
-            client: { ...BASE_QUOTATION.client, name: 'Vikas & Simran', quoNumber: 'QUO-2025-003', status: 'On Hold' },
+            client: { ...BASE_QUOTATION.client, name: 'Vikas & Simran', quoNumber: 'QUO-2025-003', status: 'Draft' },
             events: [
                 { id: 'e4', name: 'Pre-Wedding', isDateDecided: true, date: addDays(10), timeRange: '6 AM', isVenueDecided: true, venue: 'Ghats', duration: '4h', team: [], notes: '', approxCost: 15000 }
             ],
@@ -232,7 +232,7 @@ export const SAMPLE_QUOTATIONS_LIST: QuotationRecord[] = [
         updatedAt: new Date().toISOString(),
         data: {
             ...BASE_QUOTATION,
-            client: { ...BASE_QUOTATION.client, name: 'Corporate Event', quoNumber: 'QUO-2025-004', status: 'On Hold' },
+            client: { ...BASE_QUOTATION.client, name: 'Corporate Event', quoNumber: 'QUO-2025-004', status: 'Draft' }, // Changed from Rejected
             events: [
                 { id: 'e5', name: 'Conference', isDateDecided: true, date: addDays(-2), timeRange: '9 AM', isVenueDecided: true, venue: 'Convention Center', duration: '8h', team: [], notes: '', approxCost: 20000 }
             ],

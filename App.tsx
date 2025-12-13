@@ -337,6 +337,11 @@ const App: React.FC = () => {
         const paidAmount = q.data.financials.paymentMilestones.filter(m => m.isPaid).reduce((s, m) => s + m.amount, 0);
         const isPaid = paidAmount > 0;
 
+        // Calendar Filter: Only Show Confirmed or On Hold
+        if (status !== 'Confirmed' && status !== 'On Hold') {
+            return;
+        }
+
         q.data.events.forEach(ev => {
             if (ev.isDateDecided && ev.date) {
                 if (!eventsMap[ev.date]) eventsMap[ev.date] = [];
@@ -373,9 +378,7 @@ const App: React.FC = () => {
                         {dayEvents.map((ev, idx) => {
                             // Color Logic
                             let bgClass = "bg-gray-200 text-gray-800 border-gray-300"; // Default
-                            if (ev.isPaid) {
-                                bgClass = "bg-green-100 text-green-800 border-green-200 ring-1 ring-green-300"; // Advance Paid overrides
-                            } else if (ev.status === 'Confirmed') {
+                            if (ev.status === 'Confirmed') {
                                 bgClass = "bg-green-100 text-green-800 border-green-200";
                             } else if (ev.status === 'On Hold') {
                                 bgClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
@@ -386,9 +389,8 @@ const App: React.FC = () => {
                                     key={idx} 
                                     onClick={() => handleEditQuotation(ev.quoId)}
                                     className={`text-[9px] md:text-[10px] px-1 md:px-1.5 py-0.5 md:py-1 rounded border cursor-pointer truncate ${bgClass} hover:opacity-80 transition-opacity`}
-                                    title={`${ev.name} - ${ev.clientName} (${ev.status}${ev.isPaid ? ', Advance Paid' : ''})`}
+                                    title={`${ev.name} - ${ev.clientName} (${ev.status})`}
                                 >
-                                    {ev.isPaid && <span className="font-bold mr-1">₹</span>}
                                     {ev.name}
                                 </div>
                             );
@@ -419,7 +421,6 @@ const App: React.FC = () => {
                 <div className="flex flex-wrap justify-center gap-3 text-[10px] md:text-xs">
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-100 rounded"></div>Confirmed</div>
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-100 rounded"></div>On Hold</div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-100 rounded border border-green-200"></div>Adv. Paid</div>
                 </div>
             </div>
 
@@ -484,6 +485,8 @@ const App: React.FC = () => {
                 <tbody className="divide-y divide-gray-100 text-sm">
                     {quotations.map(q => {
                         const statusColors: any = { 
+                            Draft: 'bg-gray-100 text-gray-600',
+                            Sent: 'bg-blue-100 text-blue-600',
                             Confirmed: 'bg-green-100 text-green-600', 
                             'On Hold': 'bg-yellow-100 text-yellow-800'
                         };
@@ -903,6 +906,8 @@ const App: React.FC = () => {
                     onBlur={() => saveQuotation()} 
                     className="w-full p-2 border rounded text-sm bg-white"
                   >
+                    <option value="Draft">Draft</option>
+                    <option value="Sent">Sent</option>
                     <option value="Confirmed">Confirmed</option>
                     <option value="On Hold">On Hold</option>
                   </select>
