@@ -51,7 +51,7 @@ const PreviewSection: React.FC<PreviewProps> = ({ data, totals, skills }) => {
             <img src="https://picsum.photos/120/65?grayscale" alt="Logo" className="rounded-lg opacity-80" />
           </div>
           <p className="text-xs mb-0.5"><b>Quotation No:</b> {data.client.quoNumber}</p>
-          <p className="text-xs mb-0.5"><b>Date:</b> {new Date(data.client.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+          <p className="text-xs mb-0.5"><b>Quotation Date:</b> {new Date(data.client.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
           <p className="text-xs"><b>Prepared For:</b> {data.client.name.split('&')[0]}</p>
         </div>
       </div>

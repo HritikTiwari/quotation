@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Users, Zap, FileText, Plus, Trash2, Edit2, 
-  ChevronRight, ChevronLeft, Save, Menu, X, Clock, Upload, CheckCircle, Search, AlertCircle, Download, Calendar as CalendarIcon, List, Eye, PenTool
+  ChevronRight, ChevronLeft, Save, Menu, X, Clock, Upload, CheckCircle, Search, AlertCircle, Download, Calendar as CalendarIcon, List, Eye, PenTool, Copy
 } from 'lucide-react';
 import { 
   INITIAL_QUOTATION, INITIAL_CLIENTS, INITIAL_SKILLS, INITIAL_EVENT_TEMPLATES, SAMPLE_QUOTATIONS_LIST 
@@ -108,7 +108,7 @@ const App: React.FC = () => {
       updatedAt: new Date().toISOString(),
       data: {
         ...INITIAL_QUOTATION,
-        client: { ...INITIAL_QUOTATION.client, quoNumber: `QUO-${new Date().getFullYear()}-${Math.floor(Math.random()*10000)}` },
+        client: { ...INITIAL_QUOTATION.client, quoNumber: `QUO-${new Date().getFullYear()}-${Math.floor(Math.random()*10000)}`, id: undefined },
         addOns: [] // Start empty for new
       },
       history: [{
@@ -151,22 +151,74 @@ const App: React.FC = () => {
     }
   };
 
+  const generateDiff = (oldData: QuotationData, newData: QuotationData): string[] => {
+    const changes: string[] = [];
+
+    // Client Fields
+    if (oldData.client.name !== newData.client.name) changes.push(`Client Name: "${oldData.client.name}" → "${newData.client.name}"`);
+    if (oldData.client.company !== newData.client.company) changes.push(`Company updated`);
+    if (oldData.client.phone !== newData.client.phone) changes.push(`Phone updated`);
+    if (oldData.client.email !== newData.client.email) changes.push(`Email updated`);
+    if (oldData.client.status !== newData.client.status) changes.push(`Status: ${oldData.client.status} → ${newData.client.status}`);
+    if (oldData.client.date !== newData.client.date) changes.push(`Quotation Date updated`);
+    if (oldData.client.validTill !== newData.client.validTill) changes.push(`Validity Date updated`);
+
+    // Financials
+    if (oldData.financials.baseAmount !== newData.financials.baseAmount) changes.push(`Base Amount: ${oldData.financials.baseAmount} → ${newData.financials.baseAmount}`);
+    if (oldData.financials.discount !== newData.financials.discount) changes.push(`Discount: ${oldData.financials.discount} → ${newData.financials.discount}`);
+    if (oldData.financials.advanceAmount !== newData.financials.advanceAmount) changes.push(`Advance: ${oldData.financials.advanceAmount} → ${newData.financials.advanceAmount}`);
+
+    // Events (Deep check)
+    if (oldData.events.length !== newData.events.length) {
+        changes.push(`Events count: ${oldData.events.length} → ${newData.events.length}`);
+    } else {
+        oldData.events.forEach((ev, idx) => {
+            const newEv = newData.events[idx];
+            if (ev.name !== newEv.name) changes.push(`Event ${idx+1} name changed`);
+            if (ev.approxCost !== newEv.approxCost) changes.push(`Event "${newEv.name}" cost changed`);
+            if (JSON.stringify(ev.team) !== JSON.stringify(newEv.team)) changes.push(`Event "${newEv.name}" team updated`);
+        });
+    }
+
+    // Meta
+    if (oldData.meta.deliverables !== newData.meta.deliverables) changes.push(`Deliverables updated`);
+    if (oldData.meta.terms !== newData.meta.terms) changes.push(`Terms updated`);
+
+    return changes;
+  };
+
   const saveQuotation = () => {
     if (!activeQuotationId) return;
+
+    // 1. Check for New Client Creation
+    if (data.client.name && !data.client.id) {
+        // Check if name already exists to avoid duplicates (Case insensitive)
+        const existingClient = clients.find(c => c.name.toLowerCase() === data.client.name.toLowerCase());
+        if (!existingClient) {
+            const newClient: ClientMaster = {
+                id: `c-${Date.now()}`,
+                name: data.client.name,
+                company: data.client.company,
+                phone: data.client.phone,
+                email: data.client.email,
+                address: data.client.address
+            };
+            setClients(prev => [...prev, newClient]);
+            // Update data buffer with new client ID to link them
+            setData(prev => ({ ...prev, client: { ...prev.client, id: newClient.id } }));
+        } else {
+            // Link to existing
+             setData(prev => ({ ...prev, client: { ...prev.client, id: existingClient.id } }));
+        }
+    }
+
+    // Template logic removed per user request
 
     setQuotations(prev => prev.map(q => {
       if (q.id === activeQuotationId) {
         // Diffing Logic
-        const changes: string[] = [];
-        const old = q.data;
-        const current = data;
-
-        // Simple Diff checks
-        if (old.client.name !== current.client.name) changes.push(`Client Name: "${old.client.name}" → "${current.client.name}"`);
-        if (old.financials.baseAmount !== current.financials.baseAmount) changes.push(`Base Amount: ${old.financials.baseAmount} → ${current.financials.baseAmount}`);
-        if (old.addOns.length !== current.addOns.length) changes.push(`Add-ons updated`);
-        if (old.financials.advanceAmount !== current.financials.advanceAmount) changes.push(`Advance: ${old.financials.advanceAmount} → ${current.financials.advanceAmount}`);
-
+        const changes = generateDiff(q.data, data);
+        
         let newHistory = q.history;
         if (changes.length > 0) {
             const logEntry: HistoryLog = {
@@ -181,7 +233,7 @@ const App: React.FC = () => {
         return {
           ...q,
           updatedAt: new Date().toISOString(),
-          data: current,
+          data: data, // Save the updated data (including client ID link)
           history: newHistory
         };
       }
@@ -204,6 +256,7 @@ const App: React.FC = () => {
             ...prev,
             client: {
                 ...prev.client,
+                id: undefined, // Clear ID
                 name: '',
                 company: '',
                 phone: '',
@@ -220,6 +273,7 @@ const App: React.FC = () => {
             ...prev,
             client: {
                 ...prev.client,
+                id: client.id, // Link ID
                 name: client.name,
                 company: client.company || '',
                 phone: client.phone,
@@ -476,7 +530,7 @@ const App: React.FC = () => {
                     <tr>
                     <th className="p-4 border-b">ID</th>
                     <th className="p-4 border-b">Client</th>
-                    <th className="p-4 border-b">Date</th>
+                    <th className="p-4 border-b">Quotation Date</th>
                     <th className="p-4 border-b">Amount</th>
                     <th className="p-4 border-b">Status</th>
                     <th className="p-4 border-b text-right">Actions</th>
@@ -497,7 +551,7 @@ const App: React.FC = () => {
                             <tr key={q.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="p-4 font-mono text-gray-500">{q.data.client.quoNumber}</td>
                                 <td className="p-4 font-medium text-gray-800">{q.data.client.name}</td>
-                                <td className="p-4 text-gray-500">{new Date(q.createdAt).toLocaleDateString()}</td>
+                                <td className="p-4 text-gray-500">{new Date(q.data.client.date).toLocaleDateString()}</td>
                                 <td className="p-4 font-medium text-gray-800">
                                     {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(qTotal)}
                                 </td>
@@ -913,7 +967,7 @@ const App: React.FC = () => {
                   </select>
                </div>
                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Date</label>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Quotation Date</label>
                   <input type="date" name="date" value={data.client.date} onChange={handleClientChange} onBlur={() => saveQuotation()} className="w-full p-2 border rounded text-sm" />
                </div>
                <div>
@@ -1046,6 +1100,8 @@ const App: React.FC = () => {
                                     const newEvents = [...data.events]; newEvents[idx].approxCost = parseFloat(e.target.value) || 0; setData({...data, events: newEvents});
                                 }} onBlur={() => saveQuotation()} />
                             </div>
+
+                            {/* Template Checkbox removed */}
                         </div>
                         
                         {/* Team Builder */}

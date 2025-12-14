@@ -1,11 +1,12 @@
 
 
 export interface ClientDetails {
+    id?: string; // New field for linking to master
     name: string;
-    company: string; // New field
+    company: string; 
     phone: string;
     email: string;
-    address: string; // New field
+    address: string; 
     tagline: string;
     locations: string;
     reference: string;
@@ -21,7 +22,7 @@ export interface ClientDetails {
     company?: string;
     phone: string;
     email: string;
-    address?: string; // New field
+    address?: string; 
     notes?: string;
   }
 
@@ -48,10 +49,10 @@ export interface ClientDetails {
   export interface EventItem {
     id: string;
     name: string;
-    isDateDecided: boolean; // New field
+    isDateDecided: boolean; 
     date: string;
     timeRange: string;
-    isVenueDecided: boolean; // New field
+    isVenueDecided: boolean; 
     venue: string;
     duration: string;
     team: TeamMember[];
@@ -63,22 +64,22 @@ export interface ClientDetails {
 
   export interface PaymentMilestone {
     id: string;
-    name: string; // e.g. "Booking", "Wedding Day"
+    name: string; 
     type: 'percentage' | 'fixed';
-    value: number; // e.g. 30 (%) or 5000 (₹)
-    amount: number; // The calculated amount in currency
+    value: number; 
+    amount: number; 
     dueDate: string;
     isPaid: boolean;
-    paidAt?: string; // Date of payment
+    paidAt?: string; 
     method?: PaymentMethod;
-    proofFile?: string; // Base64 string of screenshot
+    proofFile?: string; 
   }
 
   export interface Financials {
     packageName: string;
     baseAmount: number;
     discount: number;
-    advanceAmount: number; // New field for advance payment
+    advanceAmount: number; 
     paymentMilestones: PaymentMilestone[];
     notes: string;
   }
@@ -94,7 +95,7 @@ export interface ClientDetails {
     deliverables: string;
     deliveryTimeline: string;
     bankDetails: string;
-    paymentTerms: string; // Changed to string for single textarea
+    paymentTerms: string; 
     terms: string;
     clientSignName: string;
     studioSignName: string;
