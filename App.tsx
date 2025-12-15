@@ -561,9 +561,6 @@ const App: React.FC = () => {
                                     </span>
                                 </td>
                                 <td className="p-4 text-right space-x-2 flex justify-end">
-                                    <button onClick={(e) => { e.stopPropagation(); setHistoryModalQuotationId(q.id); }} className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-full transition-colors" title="View History">
-                                        <Clock size={16} />
-                                    </button>
                                     <button onClick={(e) => handleEditQuotation(q.id, e)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit">
                                         <Edit2 size={16} />
                                     </button>
